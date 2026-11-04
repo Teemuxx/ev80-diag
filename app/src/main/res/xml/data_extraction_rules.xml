@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+. Settings and the session database are backed up; raw CAN logs and debug logs are not (25 MB cap). -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="sessions/" />
+        <exclude domain="file" path="logs/" />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="logs/" />
+    </device-transfer>
+</data-extraction-rules>

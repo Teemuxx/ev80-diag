@@ -1,0 +1,85 @@
+<style>
+.ph{background:#1a1a19;color:#f0efec;border-radius:22px;border:6px solid #333;font-family:Roboto,system-ui,sans-serif;position:relative;overflow:hidden;box-sizing:border-box}
+.land{width:640px;height:300px}.port{width:300px;height:667px}
+
+.ph .sec{color:#c3c2b7}.ph .mut{color:#8d8c85;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.ph .top{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:12px;border-bottom:1px solid #2c2c2a}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:10px;padding:1px 8px;font-size:11px;border:1px solid}
+.ok{border-color:#0ca30c;color:#0ca30c}.info{border-color:#3987e5;color:#3987e5}
+.big{font-size:44px;font-weight:600;line-height:1}.mid{font-size:24px;font-weight:600;line-height:1.05}.sm{font-size:15px;font-weight:500}
+.u{font-size:.5em;color:#c3c2b7;font-weight:400;margin-left:2px}
+.nav{position:absolute;bottom:0;left:0;right:0;height:28px;border-top:1px solid #2c2c2a;display:flex;justify-content:space-around;align-items:center;font-size:10px;color:#8d8c85}
+.nav b{color:#f0efec}
+.tile{background:#232321;border-radius:10px;padding:6px 9px}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+.cap{font-size:13px;color:#666;margin:4px 0 8px;text-align:center}
+.btn{display:inline-block;border:1px solid #3987e5;color:#3987e5;border-radius:14px;padding:3px 10px;font-size:11px}
+.seg{display:inline-flex;border:1px solid #52514e;border-radius:12px;overflow:hidden;font-size:11px}
+.seg span{padding:2px 9px}.seg .on{background:#3987e5;color:#fff}
+
+.strip{display:flex;gap:2px;margin-top:5px}.strip i{flex:1;height:10px;border-radius:2px}
+.temp{background:#232321;border-radius:10px;padding:7px 10px;margin-top:7px}
+.cold{border:1px solid #fab219}
+.land .temp{padding:5px 9px;margin-top:5px}.land .temp .strip+div{display:none}.land .tile{padding:4px 8px}.land .big+div{font-size:11px}
+
+.picker{display:flex;justify-content:space-between;align-items:center;font-size:12px;background:#232321;border-radius:10px;padding:5px 9px;margin-bottom:6px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#2c2c2a;border-radius:16px 16px 0 0;padding:10px 14px 14px;font-size:12px;box-shadow:0 -6px 20px rgba(0,0,0,.5)}
+.pill{display:inline-block;border:1px solid #52514e;border-radius:12px;padding:2px 9px;margin:2px 2px;font-size:11px}
+.pill.on{background:#3987e5;border-color:#3987e5;color:#fff}
+.field{background:#1a1a19;border:1px solid #52514e;border-radius:8px;padding:4px 8px;font-size:12px}
+
+.card{background:#232321;border-radius:12px;padding:9px 11px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.card.sel{outline:2px solid #3987e5}
+.av{width:30px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-weight:600;margin-right:9px}
+.btnf{display:block;text-align:center;background:#3987e5;color:#fff;border-radius:12px;padding:9px;font-weight:600;margin-top:8px}
+.banner{background:#1c2f47;border:1px solid #3987e5;border-radius:10px;padding:7px 10px;font-size:12px;margin-bottom:8px}
+.step{display:flex;gap:7px;align-items:center;font-size:12px;padding:3px 0}
+.lbl{font-size:10px;color:#8d8c85;text-transform:uppercase;margin-top:7px}
+.inp{background:#1a1a19;border:1px solid #52514e;border-radius:8px;padding:5px 8px;font-size:13px;margin-top:2px}
+.danger{color:#e66767;border-color:#e66767}
+</style>
+<h2>Connect &amp; van profiles</h2>
+<p class="subtitle">The start screen. Pick the van and the adapter, tap Connect; once the van is awake the app jumps to Live. Language switch top right.</p>
+<div class="row">
+<div><div class="ph port"><div class="top"><span><b>EV80-diag</b></span><span class="sec">DE | <b style="color:#f0efec">EN</b></span><span class="sec">⚙</span></div><div style="padding:9px 12px">
+<div class="banner">🔎 This looks like <b>ET</b> (odometer 49 551 km matches). <span style="color:#6da7ec">Switch to ET</span> · <span class="sec">keep Lytee</span></div>
+<div class="mut">Van</div>
+<div class="card"><div style="display:flex;align-items:center"><div class="av" style="background:#2a78d6">L</div><div><b>Lytee</b><div class="sec" style="font-size:11px">57 764 km · last seen 27 Oct</div></div></div><span class="sec">✎</span></div>
+<div class="card sel"><div style="display:flex;align-items:center"><div class="av" style="background:#1baf7a">E</div><div><b>ET</b><div class="sec" style="font-size:11px">49 551 km · last seen today</div></div></div><span class="sec">✎</span></div>
+<div class="card" style="justify-content:center;color:#6da7ec">＋ Add van</div>
+<div class="mut" style="margin-top:8px">Adapter</div>
+<div class="card sel"><div><b>OBDLink LX</b> <span class="sec" style="font-size:11px">Bluetooth · paired</span><div class="sec" style="font-size:11px">STN chip · full logging ✓</div></div><span>◉</span></div>
+<div class="card"><div><b>USB-CAN adapter</b> <span class="sec" style="font-size:11px">via OTG cable</span><div class="sec" style="font-size:11px">not plugged in</div></div><span class="sec">○</span></div>
+<div class="card"><div><b>Other Bluetooth (ELM327)</b><div style="font-size:11px;color:#fab219">⚠ limited: may miss frames</div></div><span class="sec">○</span></div>
+<div class="btnf">Connect</div>
+<div style="margin-top:9px">
+<div class="step"><span style="color:#0ca30c">✓</span> Adapter connected</div>
+<div class="step"><span style="color:#0ca30c">✓</span> CAN data: 627 frames/s</div>
+<div class="step"><span style="color:#0ca30c">✓</span> Van awake · READY</div>
+<div class="step"><span class="sec">→</span> opening Live…</div></div>
+</div></div><div class="cap">Start / Connect, with a recognition suggestion</div></div>
+<div><div class="ph port"><div class="top"><span>← <b>Edit van</b></span><span></span><span style="color:#6da7ec">Save</span></div><div style="padding:6px 12px">
+<div class="lbl">Name</div><div class="inp">ET</div>
+<div style="display:flex;gap:8px"><div style="flex:1"><div class="lbl">Colour</div><div class="inp"><span style="color:#1baf7a">●</span> aqua</div></div>
+<div style="flex:1"><div class="lbl">Default adapter</div><div class="inp">OBDLink LX</div></div></div>
+<div class="lbl">VIN (optional)</div><div class="inp sec">LSH14J…</div>
+<div style="display:flex;gap:8px"><div style="flex:1"><div class="lbl">Odometer at start</div><div class="inp">38 922 km <span class="sec" style="font-size:10px">auto</span></div></div>
+<div style="flex:1"><div class="lbl">Usable capacity</div><div class="inp">160 Ah <span class="sec" style="font-size:10px">learned</span></div></div></div>
+<div class="lbl">Notes / history</div>
+<div class="inp" style="font-size:12px">2026-06-19 · cells rebalanced<br>EVCC sent to Hungary for reflash, old version restored<br><span style="color:#6da7ec">＋ add note</span></div>
+<div class="lbl">Recognition</div>
+<div class="inp" style="font-size:12px">Odometer 49 551 km · energy counter 6821<br><span class="sec" style="font-size:10px">used to suggest this van when connecting</span></div>
+<div class="lbl">Data</div><div class="sec" style="font-size:11px">142 sessions · 38 MB (compressed)</div>
+<div style="display:flex;gap:6px;margin-top:6px"><span class="btn">⤓ Back up</span><span class="btn">⤒ Restore</span><span class="btn danger">🗑 Delete</span></div>
+</div></div><div class="cap">Edit van (✎)</div></div>
+<div><div class="ph port" style="height:470px"><div class="top"><span><b>Welcome</b></span><span class="sec">step 3 of 3</span><span></span></div><div style="padding:10px 12px">
+<div class="sec" style="font-size:12px">1 Language ✓ &nbsp; 2 Adapter ✓ &nbsp; <b style="color:#f0efec">3 Your van</b></div>
+<div style="margin-top:12px;font-size:14px">Connected. Your van is awake and the battery data is coming in.</div>
+<div class="lbl" style="margin-top:12px">What do you call your van?</div><div class="inp">My EV80</div>
+<div class="sec" style="font-size:11px;margin-top:8px">Odometer (49 551 km) and battery size were read automatically. You can add notes later.</div>
+<div class="btnf" style="margin-top:16px">Start</div>
+<div class="sec" style="font-size:11px;margin-top:12px">With only one van, the app never asks which one it is.</div></div></div><div class="cap">First start for a new owner (last step)</div></div>
+</div>
+<p class="subtitle" style="margin-top:12px"><b>Recognition, kept unobtrusive:</b> it only appears when an owner has two or more vans, and it is only a suggestion banner. It never switches on its own. It compares the odometer (when the van is on) or the BMS energy counter (when only the battery is awake, e.g. charging) with what each profile last saw. With one van there's never a question.<br>
+<b>Back up</b> writes one compressed file with the profile, its notes and all its sessions; <b>Restore</b> reads it back (also on a new phone). <b>Delete</b> asks twice and offers a backup first.<br>
+<b>Adapter list:</b> the LX and USB-CAN are marked as full logging; any other Bluetooth adapter gets a warning that it may miss frames, so shared logs from it aren't mistaken for complete ones.</p>

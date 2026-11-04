@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- gs_usb / candleLight family: CANable (1d50:606f), candleLight (1209:2323) -->
+    <usb-device vendor-id="7504" product-id="24687" />
+    <usb-device vendor-id="4617" product-id="8995" />
+</resources>

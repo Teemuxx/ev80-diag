@@ -1,0 +1,281 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "e592e2b200b0055b63d8b4f2606016be",
+    "entities": [
+      {
+        "tableName": "profile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `createdMs` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdMs",
+            "columnName": "createdMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "session",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `profileId` INTEGER NOT NULL, `type` TEXT NOT NULL, `outcome` TEXT, `startMs` INTEGER NOT NULL, `endMs` INTEGER, `chargerName` TEXT, `chargedKwh` REAL, `rawLogPath` TEXT, `marksPath` TEXT, `adapterKind` TEXT NOT NULL, `adapterName` TEXT, `droppedFrames` INTEGER NOT NULL, `framesTotal` INTEGER NOT NULL, `distanceKm` REAL, `driveKwh` REAL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profileId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outcome",
+            "columnName": "outcome",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "startMs",
+            "columnName": "startMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endMs",
+            "columnName": "endMs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "chargerName",
+            "columnName": "chargerName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "chargedKwh",
+            "columnName": "chargedKwh",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "rawLogPath",
+            "columnName": "rawLogPath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "marksPath",
+            "columnName": "marksPath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "adapterKind",
+            "columnName": "adapterKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "adapterName",
+            "columnName": "adapterName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "droppedFrames",
+            "columnName": "droppedFrames",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "framesTotal",
+            "columnName": "framesTotal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distanceKm",
+            "columnName": "distanceKm",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "driveKwh",
+            "columnName": "driveKwh",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_session_startMs",
+            "unique": false,
+            "columnNames": [
+              "startMs"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_startMs` ON `${TABLE_NAME}` (`startMs`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sample",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` INTEGER NOT NULL, `tsMs` INTEGER NOT NULL, `packV` REAL, `packA` REAL, `socBms` REAL, `socApp` REAL, `insulationKOhm` REAL, `tempAvg` REAL, `tempMin` REAL, `tempMax` REAL, `cellMinMv` REAL, `cellMaxMv` REAL, `energyKwh` REAL, PRIMARY KEY(`sessionId`, `tsMs`))",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tsMs",
+            "columnName": "tsMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packV",
+            "columnName": "packV",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "packA",
+            "columnName": "packA",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "socBms",
+            "columnName": "socBms",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "socApp",
+            "columnName": "socApp",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "insulationKOhm",
+            "columnName": "insulationKOhm",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "tempAvg",
+            "columnName": "tempAvg",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "tempMin",
+            "columnName": "tempMin",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "tempMax",
+            "columnName": "tempMax",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "cellMinMv",
+            "columnName": "cellMinMv",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "cellMaxMv",
+            "columnName": "cellMaxMv",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "energyKwh",
+            "columnName": "energyKwh",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sessionId",
+            "tsMs"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sample_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sample_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "cell_snapshot",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`profileId` INTEGER NOT NULL, `tsMs` INTEGER NOT NULL, `mv` BLOB NOT NULL, `charging` INTEGER NOT NULL, PRIMARY KEY(`profileId`, `tsMs`))",
+        "fields": [
+          {
+            "fieldPath": "profileId",
+            "columnName": "profileId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tsMs",
+            "columnName": "tsMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mv",
+            "columnName": "mv",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "charging",
+            "columnName": "charging",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "profileId",
+            "tsMs"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e592e2b200b0055b63d8b4f2606016be')"
+    ]
+  }
+}

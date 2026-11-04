@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older. Raw CAN logs are too large for Auto Backup (25 MB cap, beyond which nothing is backed up). -->
+<full-backup-content>
+    <exclude domain="file" path="sessions/" />
+    <exclude domain="file" path="logs/" />
+    <exclude domain="external" path="." />
+</full-backup-content>
