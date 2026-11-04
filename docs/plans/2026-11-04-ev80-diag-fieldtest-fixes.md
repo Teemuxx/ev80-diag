@@ -22,11 +22,14 @@
 1. A tile layout saved with `TEMP_MOTOR` (removed kind) must load with that slot falling back to its default, not crash. Pinned in Task 2 (`decode_removedKind_fallsBack`).
 2. Auto-jump to Charging must not hijack another tab's back stack (the reported bug). Pinned by the phone repro in Task 1.
 3. Accelerator 0x380 B6 must not be read from the odometer=0 wake frame as a pedal value of something odd. Pinned in Task 2 (`accelPedal_380`).
-4. Export list with > 50 sessions: the "All" button shows every session, and the list stays usable. Pinned in Task 3.
+4. Export of a long history must not load every cell snapshot at once: read page by page (Task 3).
 
 ---
 
 ### Task 0: New repository `EV80-diag`
+
+Owner (2026-11-04): rename the package to `io.github.ev80diag`; keep the real-log fixtures out of the repo
+(they live in `/home/user/VSCode/EV80-diag-testdata`, its own local git repo; fixture tests skip without it).
 
 - [ ] **Step 1:** Create `/home/user/VSCode/EV80-diag` from the `ev80-diag-stage2` tree (`git archive ev80-diag-stage2 | tar -x -C …`), so no old history and nothing untracked comes along.
   - Leave out: `CLAUDE-MERGE-SUMMARY.md`, `can_config_obc_typ2.yaml` (EVCC config, unrelated), `canbus.md` (superseded by the signal table), `local.properties`, `build/`.
@@ -72,13 +75,14 @@
 - [ ] **Step 4:** Same command → all green.
 - [ ] **Step 5:** Commit `feat(signals): pedals, honest 0x302/discharge/counter labels`.
 
-### Task 3: Export "All" button
+### Task 3: Export all data of the van profile
 
-Reading of the request: the session list stops at the newest 50; at its very bottom add an "All (N)" button that shows every session. (If you meant "export all sessions at once", say so — that's a different task.)
+Owner (2026-11-04): "export all data that is collected on this profile (vehicle name) at once".
 
-- [ ] **Step 1: Failing test** `ExportListTest`: `ExportList.visible(sessions(60), showAll = false)` → 50 items + `hiddenCount = 10`; `showAll = true` → 60, `hiddenCount = 0`; 30 sessions → no button (`hiddenCount = 0`).
-- [ ] **Step 2–4:** RED, implement `ui/screen/ExportList.kt` + button in `ExportDebugScreen.kt` (strings `export_show_all` "All (%d)" / "Alle (%d)"), GREEN.
-- [ ] **Step 5:** Commit `feat(export): show-all button under the session list`.
+- `export/ProfileExport.kt`: one zip with `profile.json`, `sessions.csv` (one row per session), `sessions/<name>.ev80` (each session's normal bundle, stored) and `cells.csv.gz` (all cell snapshots, `ts_ms,charging,c1…c104`, read in pages of 2,000).
+- `SessionExporter.buildAll(ctx)`; DAO `SessionDao.listForProfile`, `CellSnapshotDao.page` (blocking, called on IO).
+- Button "Export all data of <van>" under the session list, disabled while the zip is built.
+- Tests `ProfileExportTest`: sessions CSV (quoting), cells CSV (106 columns), zip entries and nested bundle bytes, profile JSON quoting.
 
 ### Task 4: Version instead of clock
 
