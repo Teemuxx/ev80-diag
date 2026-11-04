@@ -86,25 +86,27 @@ fun AppNavGraph(vanName: String) {
     val bar = if (landscape) BAR_PORTRAIT + DETAILS else BAR_PORTRAIT
     val more = if (landscape) MORE else listOf(DETAILS) + MORE
     val state by Recorder.state.collectAsState()
-    val requested by NavRequests.route.collectAsState()
-    LaunchedEffect(requested) {
-        requested?.let { navController.navigate(it) { launchSingleTop = true }; NavRequests.route.value = null }
-    }
-
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val settings = androidx.compose.runtime.remember { io.github.ev80diag.settings.AppSettings(ctx) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    // Every switch between screens, by tap or automatic, goes through here. A plain navigate() would stack the
+    // target on the current tab, and that tab would then restore it every time it is opened again.
     fun go(route: String) = navController.navigate(route) {
         popUpTo(navController.graph.startDestinationId) { saveState = true }
         launchSingleTop = true
         restoreState = true
     }
 
+    val requested by NavRequests.route.collectAsState()
+    LaunchedEffect(requested) {
+        requested?.let { go(it); NavRequests.route.value = null }
+    }
+
     // open Charging when a charge starts (setting)
     val sessionType = state.session?.type
     LaunchedEffect(sessionType) {
         val isCharge = sessionType == SessionType.CHARGE_AC || sessionType == SessionType.CHARGE_DC
-        if (isCharge && settings.openChargingOnStart) navController.navigate(Screen.Charging.route) { launchSingleTop = true }
+        if (isCharge && settings.openChargingOnStart) go(Screen.Charging.route)
     }
     // after Connect: on to Live, or Charging if a charge is running (spec §5.1)
     LaunchedEffect(state.link) {
