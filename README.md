@@ -24,11 +24,11 @@ next to a release build as `io.github.ev80diag.dev`.
 
 ## Tests
 
-`./gradlew :app:testDebugUnitTest`. Tests that replay real CAN logs need the private test-data folder
-`../EV80-diag-testdata` (or `-Pev80.testdata=<dir>`); without it they are skipped.
+`./gradlew :app:testDebugUnitTest`. Many tests replay short excerpts of real CAN logs from two EV80 vans
+(`app/src/test/resources/fixtures`, cut by `tools/make_fixtures.sh` from the full logs, which are not in this repo).
 
 Note: `connectedDebugAndroidTest` uninstalls the debug app afterwards and so deletes its recordings.
 
 ## Licence
 
-Not decided yet.
+GNU General Public License v3.0 or later (GPL-3.0-or-later), see [LICENSE](LICENSE).

@@ -14,10 +14,7 @@ class ReplaySourceTest {
         override fun onEvent(e: SourceEvent) { events.add(e) }
     }
 
-    private fun fixture(name: String): () -> java.io.InputStream {
-        io.github.ev80diag.TestLogs.resource("fixtures/$name").close()   // skips the test here when the data is missing
-        return { io.github.ev80diag.TestLogs.resource("fixtures/$name") }
-    }
+    private fun fixture(name: String): () -> java.io.InputStream = { io.github.ev80diag.TestLogs.resource("fixtures/$name") }
 
     @Test
     fun replay_gzFixture_deliversAllFramesInOrder() = runBlocking {

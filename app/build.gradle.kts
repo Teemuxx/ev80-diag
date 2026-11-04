@@ -16,8 +16,6 @@ android {
     compileSdk = 36
 
     sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")   // Room schema JSONs for MigrationTestHelper
-    // Real CAN-log fixtures live outside this repo (private van data). Tests that need them are skipped without it.
-    sourceSets["test"].resources.srcDir(providers.gradleProperty("ev80.testdata").getOrElse("$rootDir/../EV80-diag-testdata"))
     defaultConfig {
         applicationId = "io.github.ev80diag"
         minSdk = 24

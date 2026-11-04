@@ -42,10 +42,7 @@ class PipelineReplayTest {
         override suspend fun addCellSnapshot(s: io.github.ev80diag.data.store.CellSnapshotEntity) { snapshots.add(s) }
     }
 
-    private fun fixture(name: String): () -> java.io.InputStream {
-        io.github.ev80diag.TestLogs.resource("fixtures/$name").close()   // skips the test here when the data is missing
-        return { io.github.ev80diag.TestLogs.resource("fixtures/$name") }
-    }
+    private fun fixture(name: String): () -> java.io.InputStream = { io.github.ev80diag.TestLogs.resource("fixtures/$name") }
 
     private fun runPipeline(name: String, mode: FullCanLogging, repo: FakeRepo, dir: File): Pipeline {
         val p = Pipeline(dir, { mode }, repo, profileId = 1, replayMode = true)
