@@ -26,8 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.ev80diag.BuildConfig
 import io.github.ev80diag.R
 import io.github.ev80diag.pipeline.LinkStatus
 import io.github.ev80diag.pipeline.RecorderState
@@ -45,10 +44,6 @@ import io.github.ev80diag.ui.theme.StatusGood
 import io.github.ev80diag.ui.theme.StatusWarning
 import io.github.ev80diag.warnings.Level
 import io.github.ev80diag.ui.theme.TextMutedDark
-import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 private data class Chip(val icon: ImageVector, val textRes: Int, val color: Color)
 
@@ -69,7 +64,7 @@ private fun chipFor(s: RecorderState): Chip = when {
     }
 }
 
-/** Van name, adapter, state chip (always icon + text, never colour alone) and the clock. */
+/** Van name, adapter, state chip (always icon + text, never colour alone) and the app version. */
 @Composable
 fun TopStatusBar(state: RecorderState, vanName: String, modifier: Modifier = Modifier, gear: String? = null,
                  warning: Pair<Level, Int?> = Level.OK to null, onVanClick: () -> Unit = {}) {
@@ -85,10 +80,6 @@ fun TopStatusBar(state: RecorderState, vanName: String, modifier: Modifier = Mod
         if (gear != null && state.van.power == PowerState.READY && state.link == LinkStatus.CONNECTED) append(" · ").append(gear)
         if (warnRes != null && level != Level.OK) append(" · ").append(stringResource(warnRes))
     }
-    val clock by produceState("") {
-        val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
-        while (true) { value = fmt.format(Date()); delay(10_000) }
-    }
     // The app draws edge to edge: keep clear of Android's status bar (and the camera cutout in landscape)
     Row(modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
             .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -101,6 +92,6 @@ fun TopStatusBar(state: RecorderState, vanName: String, modifier: Modifier = Mod
                 Text(text, fontSize = 11.sp, color = chip.color)
             }
         }
-        Text(clock, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("v" + BuildConfig.VERSION_NAME, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

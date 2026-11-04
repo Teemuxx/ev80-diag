@@ -22,8 +22,8 @@ android {
         applicationId = "io.github.ev80diag"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -43,6 +43,7 @@ android {
         debug {
             // Installs side by side with an existing (differently signed) build, with its own data.
             applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
         }
         release {
             if (keystoreProps.isNotEmpty()) signingConfig = signingConfigs.getByName("release")
@@ -59,6 +60,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     testOptions {
         unitTests.isReturnDefaultValues = true   // android.util.Log etc. return defaults in JVM tests
