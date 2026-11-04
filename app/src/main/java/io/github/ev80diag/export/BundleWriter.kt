@@ -69,7 +69,7 @@ object BundleWriter {
         append(if (last) "\n" else ",\n")
     }
 
-    private fun StringBuilder.quote(s: String) {
+    internal fun StringBuilder.quote(s: String) {
         append('"')
         for (c in s) when {
             c == '"' -> append("\\\"")

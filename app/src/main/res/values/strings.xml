@@ -149,6 +149,8 @@
     <string name="zone_critical">BMS stops charging ≈ 36 kΩ</string>
     <string name="btn_ok">OK</string>
     <string name="export_sessions">Sessions</string>
+    <string name="export_all">Export all data of %s</string>
+    <string name="export_all_busy">Preparing export of %s…</string>
     <string name="export_none">No sessions yet.</string>
     <string name="export_format">Export format</string>
     <string name="fmt_bundle">Bundle (.ev80: raw CAN + summary, compressed)</string>

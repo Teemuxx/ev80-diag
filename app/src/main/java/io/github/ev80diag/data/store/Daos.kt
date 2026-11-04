@@ -22,6 +22,7 @@ interface SessionDao {
     @Query("SELECT * FROM session WHERE id = :id") suspend fun byId(id: Long): SessionEntity?
     @Query("SELECT * FROM session ORDER BY startMs DESC") fun all(): Flow<List<SessionEntity>>
     @Query("SELECT * FROM session WHERE endMs IS NULL") suspend fun open(): List<SessionEntity>
+    @Query("SELECT * FROM session WHERE profileId = :profileId ORDER BY startMs") suspend fun listForProfile(profileId: Long): List<SessionEntity>
     // Single-column updates: the pipeline, the Charging screen (charger name) and cleanup write the same row.
     @Query("UPDATE session SET type = :type WHERE id = :id") suspend fun setType(id: Long, type: String)
     @Query("UPDATE session SET rawLogPath = :raw, marksPath = :marks WHERE id = :id") suspend fun setRawPaths(id: Long, raw: String?, marks: String?)
@@ -52,6 +53,9 @@ interface SampleDao {
 @Dao
 interface CellSnapshotDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insert(s: CellSnapshotEntity)
+    /** One page of the whole history, oldest first, for the profile export (blocking: call it off the main thread). */
+    @Query("SELECT * FROM cell_snapshot WHERE profileId = :profileId AND tsMs > :afterTs ORDER BY tsMs LIMIT :limit")
+    fun page(profileId: Long, afterTs: Long, limit: Int): List<CellSnapshotEntity>
     /**
      * Step 1: the first snapshot time per [bucketMs], read from the primary-key index only (no blobs), so even
      * 30 days stay cheap. Step 2, [atTimes], loads the blobs for those ~400 times.

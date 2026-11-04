@@ -67,6 +67,8 @@ fun ExportDebugScreen(modifier: Modifier = Modifier, vm: ExportDebugViewModel = 
     val storage by vm.storageBytes.collectAsState()
     var format by remember { mutableStateOf(ExportFormat.BUNDLE) }
     var failed by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    val profileName by vm.profileName.collectAsState()
     var logLines by remember { mutableStateOf(emptyList<String>()) }
     LaunchedEffect(state.framesTotal / 2000) { logLines = withContext(Dispatchers.IO) { DebugLog.tail(200) } }
 
@@ -75,6 +77,17 @@ fun ExportDebugScreen(modifier: Modifier = Modifier, vm: ExportDebugViewModel = 
         if (sessions.isEmpty()) Text(stringResource(R.string.export_none))
         sessions.take(50).forEach { s ->
             SessionRow(s) { scope.launch { failed = !shareSession(ctx, s.id, format) } }
+        }
+        // everything recorded for this van in one zip: every session's bundle, a session list and all cell snapshots
+        if (sessions.isNotEmpty()) OutlinedButton({
+            busy = true
+            scope.launch {
+                val f = SessionExporter.buildAll(ctx)
+                busy = false
+                if (f != null) SessionExporter.share(ctx, f, R.string.share_title) else failed = true
+            }
+        }, Modifier.fillMaxWidth(), enabled = !busy) {
+            Text(stringResource(if (busy) R.string.export_all_busy else R.string.export_all, profileName ?: ""))
         }
         if (failed) Text(stringResource(R.string.export_failed), color = StatusCritical)
 

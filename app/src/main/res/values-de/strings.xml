@@ -149,6 +149,8 @@
     <string name="zone_critical">BMS beendet Ladung ≈ 36 kΩ</string>
     <string name="btn_ok">OK</string>
     <string name="export_sessions">Sitzungen</string>
+    <string name="export_all">Alle Daten von %s exportieren</string>
+    <string name="export_all_busy">Export von %s wird erstellt…</string>
     <string name="export_none">Noch keine Sitzungen.</string>
     <string name="export_format">Exportformat</string>
     <string name="fmt_bundle">Bundle (.ev80: Roh-CAN + Zusammenfassung, komprimiert)</string>

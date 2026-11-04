@@ -47,6 +47,31 @@ object SessionExporter {
         }
     }
 
+    /** Everything recorded for the van profile as one zip ([ProfileExport]), or null when nothing is recorded yet. */
+    suspend fun buildAll(ctx: Context): File? = withContext(Dispatchers.IO) {
+        val db = Ev80Database.get(ctx)
+        val profile = db.profiles().first() ?: return@withContext null
+        val sessions = db.sessions().listForProfile(profile.id)
+        if (sessions.isEmpty()) return@withContext null
+        val bundles = sessions.mapNotNull { build(ctx, it.id, ExportFormat.BUNDLE) }
+        val version = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
+        val json = ProfileExport.profileJson(profile.name, version, System.currentTimeMillis(), sessions.size)
+        val cells = sequence {   // paged, so a long history never sits in memory at once
+            var after = Long.MIN_VALUE; var first = true
+            while (true) {
+                val page = db.cellSnapshots().page(profile.id, after, 2_000)
+                yieldAll(ProfileExport.cellsCsv(page, header = first)); first = false
+                if (page.size < 2_000) break
+                after = page.last().tsMs
+            }
+        }
+        val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
+        val name = "ev80_${profile.name.replace(Regex("[^A-Za-z0-9_-]"), "_")}_all_$stamp.zip"
+        val out = ProfileExport.write(File(File(ctx.cacheDir, "share"), name), json, ProfileExport.sessionsCsv(sessions), bundles, cells)
+        bundles.forEach { it.delete() }
+        out
+    }
+
     fun mimeOf(f: File) = when { f.name.endsWith(".csv") -> "text/csv"; f.name.endsWith(".gz") -> "application/gzip"; else -> "application/zip" }
 
     fun share(ctx: Context, file: File, titleRes: Int) {
