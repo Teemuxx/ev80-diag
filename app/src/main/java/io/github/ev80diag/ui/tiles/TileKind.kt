@@ -29,7 +29,6 @@ enum class TileKind(val group: TileGroup, val labelRes: Int) {
     CONS_PERIOD(TileGroup.DRIVING, R.string.tile_cons_period),
     TEMP_BATT_AVG(TileGroup.TEMPS_12V, R.string.tile_temp_batt),
     TEMP_BATT_MIN_MAX(TileGroup.TEMPS_12V, R.string.tile_temp_batt_min_max),
-    TEMP_MOTOR(TileGroup.TEMPS_12V, R.string.tile_temp_motor),
     V12(TileGroup.TEMPS_12V, R.string.tile_v12),
     CHARGE_POWER(TileGroup.CHARGING, R.string.charge_power),
     CHARGED_KWH(TileGroup.CHARGING, R.string.charge_charged),

@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class FreshValuesTest {
-    private val latest = mapOf("motor_temp" to 36.0, "v12" to 13.9, "pack_v" to 357.7, "cell_min_no" to 46.0, "cell_min_mv" to 3413.0)
+    private val latest = mapOf("drive_temp_302" to 36.0, "v12" to 13.9, "pack_v" to 357.7, "cell_min_no" to 46.0, "cell_min_mv" to 3413.0)
 
     @Test fun silentIds_dropWhileOthersFlow() {
         // charging: the BMS set (0x550, 0x530) is on the bus, the drive side (0x302, 0x303) went quiet an hour ago

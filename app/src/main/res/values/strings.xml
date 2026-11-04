@@ -18,9 +18,10 @@
     <string name="sig_bms_state_expl">0x06 plugged, 0x15 AC charging, 0x16 DC charging, 0x1A DC charge complete, 0x12 stopped by the BMS.</string>
     <string name="sig_hv_flags">High-voltage flags</string>
     <string name="sig_hv_flags_expl">Bit 0x04 set: high-voltage contactors closed (READY or charging). Bit 0x10: low-charge flag.</string>
-    <string name="sig_charge_counter">Lifetime charge counter</string>
-    <string name="sig_charge_counter_expl">Counts upward by 1 per 2 kWh charged into the battery over the van\'s life.</string>
-    <string name="sig_disch_limit_kw">Discharge power limit</string>
+    <string name="sig_charge_counter">Lifetime energy charged</string>
+    <string name="sig_charge_counter_expl">All energy charged into the battery over the van\'s life, AC and DC, in 2 kWh steps. Driving and regeneration do not count.</string>
+    <string name="sig_disch_limit_kw">Discharge power rating (BMS)</string>
+    <string name="sig_disch_limit_kw_expl">Not a hard limit: acceleration can draw far more (up to ~90 kW seen). It equals the BMS discharge current limit × pack voltage and drops when the BMS lowers that limit at low charge.</string>
     <string name="sig_regen_limit_kw">Regeneration power limit</string>
     <string name="sig_charge_current_600">Charge current (BMS status)</string>
     <string name="sig_charge_minutes_600">Charge time (BMS status)</string>
@@ -170,10 +171,12 @@
     <string name="outcome_interrupted">interrupted (app closed)</string>
     <string name="session_meta">%1$s · %2$s%3$s</string>
     <string name="share_title">Share session</string>
-    <string name="sig_motor_temp">Motor temperature</string>
-    <string name="sig_motor_temp_expl">Temperature in the motor drive, rises over a drive (13–61 °C seen). Probable: which of the two values is motor and which inverter is not yet confirmed.</string>
-    <string name="sig_inverter_temp">Inverter temperature</string>
-    <string name="sig_inverter_temp_expl">Second temperature in the motor drive, close to the motor value. Probable.</string>
+    <string name="sig_drive_temp_302">Drive-unit temperature (unclear)</string>
+    <string name="sig_drive_temp_302_expl">A temperature-like value from the motor controller (13–61 °C seen). It changes within a minute with load, so it is probably not the motor itself; which part it belongs to is not confirmed.</string>
+    <string name="sig_accel_pedal_pct">Accelerator pedal</string>
+    <string name="sig_accel_pedal_pct_expl">Accelerator position in %, 0 when released. Also reads in P and N.</string>
+    <string name="sig_brake_pedal">Brake pedal travel</string>
+    <string name="sig_brake_pedal_expl">Raw brake pedal travel: 0 released, about 100–130 pressed (no unit known).</string>
     <string name="value_yes">yes</string>
     <string name="value_no">no</string>
     <string name="bms_state_plugged">Awake / plugged in</string>
@@ -210,7 +213,7 @@
     <string name="live_consumption">Consumption</string>
     <string name="live_consumption_sub">kWh/100 km now</string>
     <string name="live_v12">12 V</string>
-    <string name="live_temps">Batt / Motor</string>
+    <string name="live_temps">Battery temp</string>
     <string name="spread_ok">normal</string>
     <string name="spread_high">high</string>
     <string name="cell_low">low</string>
@@ -235,7 +238,6 @@
     <string name="tile_cons_period">Consumption, chosen period</string>
     <string name="tile_temp_batt">Battery temperature</string>
     <string name="tile_temp_batt_min_max">Battery min / max</string>
-    <string name="tile_temp_motor">Motor temperature</string>
     <string name="tile_v12">12 V battery</string>
     <string name="tile_cell_no">cell #%1$s</string>
     <string name="tile_spread_mv">%1$s mV</string>

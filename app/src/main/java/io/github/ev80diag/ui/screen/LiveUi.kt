@@ -19,7 +19,7 @@ data class LiveUi(
     /** Positive while driving (discharge), negative for regen or charging. */
     val powerKw: Double?, val packV: Double?, val packA: Double?,
     val socApp: Double?, val socBms: Double?, val rangeAppKm: Double?, val rangeDashKm: Double?,
-    val speedKmh: Double?, val kwhPer100Now: Double?, val v12: Double?, val tempBatt: Double?, val tempMotor: Double?,
+    val speedKmh: Double?, val kwhPer100Now: Double?, val v12: Double?, val tempBatt: Double?,
     /** The van is asleep or not connected: the values are the last ones seen, from [valuesFromMs]. */
     val stale: Boolean, val valuesFromMs: Long?,
 )
@@ -52,7 +52,7 @@ object LiveUiBuilder {
             rangeAppKm = RangeEstimator.rangeKm(socApp, capacityAh, packV, state.drive?.kwhPer100Recent ?: allTimeKwhPer100),
             rangeDashKm = d["range_dash_km"],
             speedKmh = d["speed_kmh"], kwhPer100Now = state.drive?.kwhPer100Now, v12 = d["v12"],
-            tempBatt = d["temp_avg"], tempMotor = d["motor_temp"],
+            tempBatt = d["temp_avg"],
             stale = stale, valuesFromMs = state.van.lastFrameMs.takeIf { stale && it > 0 },
         )
     }

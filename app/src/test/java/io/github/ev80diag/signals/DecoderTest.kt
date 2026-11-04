@@ -74,8 +74,20 @@ class DecoderTest {
     }
 
     @Test
-    fun counter_590() {
-        assertEquals(6821.0, decode(0x590, "0000000000A51A00")["charge_counter"]!!, 0.001)
+    fun counter_590_inKwh() {
+        // 0x1AA5 = 6821 counts of 2 kWh (ET, Oct 2026)
+        assertEquals(13642.0, decode(0x590, "0000000000A51A00")["charge_counter"]!!, 0.001)
+    }
+
+    @Test
+    fun accelPedal_380() {
+        assertEquals(46.0, decode(0x380, "0000978F07002E00")["accel_pedal_pct"]!!, 0.001)
+        assertEquals(0.0, decode(0x380, "0000000000000000")["accel_pedal_pct"]!!, 0.001)   // released (also the wake frame)
+    }
+
+    @Test
+    fun brakePedal_260() {
+        assertEquals(122.0, decode(0x260, "0000007A15000000")["brake_pedal"]!!, 0.001)
     }
 
     @Test
@@ -168,10 +180,11 @@ class DecoderTest {
     }
 
     @Test
-    fun motorTemp_302() {
+    fun driveTemp_302_oneValue() {
+        // B3 and B4 always carry the same value: one signal, not motor + inverter (claude.md, field test 2026-11-03)
         val m = decode(0x302, "3635364C4C6403FF")
-        assertEquals(36.0, m["motor_temp"]!!, 0.001)
-        assertEquals(36.0, m["inverter_temp"]!!, 0.001)
+        assertEquals(36.0, m["drive_temp_302"]!!, 0.001)
+        assertNull(m["motor_temp"]); assertNull(m["inverter_temp"])
     }
 
     @Test

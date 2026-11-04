@@ -238,6 +238,30 @@ class PipelineReplayTest {
         }
     }
 
+    /** 10-23 12:19 drive: the accelerator reads up to tens of %, and it is released whenever the brake is pressed. */
+    @Test
+    fun drive1023_pedals() {
+        val repo = FakeRepo(); val dir = Files.createTempDirectory("sess").toFile()
+        var maxAccel = 0.0; var accelWhileBraking = 0.0; var brakeSeen = 0.0
+        val p = Pipeline(dir, { FullCanLogging.CHARGING_ONLY }, repo, profileId = 1, replayMode = true)
+        runBlocking {
+            val watch = launch(kotlinx.coroutines.Dispatchers.Default) {
+                p.state.collect { st ->
+                    val a = st.decoded["accel_pedal_pct"] ?: return@collect
+                    val b = st.decoded["brake_pedal"] ?: return@collect
+                    maxAccel = maxOf(maxAccel, a); brakeSeen = maxOf(brakeSeen, b)
+                    if (b > 50) accelWhileBraking = maxOf(accelWhileBraking, a)
+                }
+            }
+            var given = false
+            p.run { if (given) null else { given = true; ReplaySource(fixture("drive_1023.log.gz")) } }
+            watch.cancel()
+        }
+        assertTrue("max accelerator $maxAccel", maxAccel > 30)
+        assertTrue("max brake $brakeSeen", brakeSeen > 50)
+        assertEquals(0.0, accelWhileBraking, 1.0)
+    }
+
     @Test
     fun etEnd_snapshotsEvery2s() {
         val repo = FakeRepo(); val dir = Files.createTempDirectory("sess").toFile()
@@ -260,7 +284,7 @@ class PipelineReplayTest {
         p.run { if (given) null else { given = true; ListSource(frames) } }
         val d = p.state.value.decoded
         assertTrue("pack_v present", d.containsKey("pack_v"))
-        assertNull("motor_temp ${d["motor_temp"]}", d["motor_temp"])
+        assertNull("drive_temp_302 ${d["drive_temp_302"]}", d["drive_temp_302"])
         assertNull("speed ${d["speed_kmh"]}", d["speed_kmh"])
     }
 

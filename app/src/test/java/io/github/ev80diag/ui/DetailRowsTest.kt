@@ -21,6 +21,11 @@ class DetailRowsTest {
         assertTrue(rows.values.flatten().any { it.def.key == "pack_v" })
     }
 
+    @Test fun pedals_inDriving() {
+        val driving = DetailRows.build(RecorderState(), "", name)[SignalGroup.DRIVING]!!.map { it.def.key }
+        assertTrue(driving.containsAll(listOf("accel_pedal_pct", "brake_pedal", "drive_temp_302")))
+    }
+
     @Test fun groupsInOrder() {
         assertEquals(listOf(SignalGroup.BATTERY, SignalGroup.CHARGING, SignalGroup.DRIVING, SignalGroup.VEHICLE),
             DetailRows.build(RecorderState(), "", name).keys.toList())

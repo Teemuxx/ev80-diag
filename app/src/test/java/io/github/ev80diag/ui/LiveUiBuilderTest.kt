@@ -24,7 +24,7 @@ class LiveUiBuilderTest {
         link = LinkStatus.CONNECTED,
         van = VanState(PowerState.READY, 'D', 1_000_000),
         decoded = mapOf("cell_min_mv" to 3261.0, "cell_min_no" to 34.0, "cell_max_mv" to 3277.0, "cell_max_no" to 4.0,
-            "pack_v" to 350.0, "pack_a" to 20.0, "soc_bms" to 78.5, "range_dash_km" to 143.0, "motor_temp" to 36.0,
+            "pack_v" to 350.0, "pack_a" to 20.0, "soc_bms" to 78.5, "range_dash_km" to 143.0, "drive_temp_302" to 36.0,
             "temp_avg" to 14.0, "speed_kmh" to 42.0, "v12" to 13.9),
         socAppPercent = 78.5f,
         drive = DriveSnapshot(5.6, 1.62, 27.0, 28.9),
@@ -43,7 +43,6 @@ class LiveUiBuilderTest {
         assertEquals(159.7, ui.rangeAppKm!!, 0.5)
         assertEquals(143.0, ui.rangeDashKm!!, 0.001)
         assertEquals(27.0, ui.kwhPer100Now!!, 0.001)
-        assertEquals(36.0, ui.tempMotor!!, 0.001)
         assertFalse(ui.stale)
     }
 

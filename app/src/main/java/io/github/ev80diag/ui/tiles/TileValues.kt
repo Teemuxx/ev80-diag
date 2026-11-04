@@ -64,7 +64,6 @@ object TileValues {
             TileKind.TEMP_BATT_AVG -> TileText(f(l.tempBatt, 0, "°C"), null)
             TileKind.TEMP_BATT_MIN_MAX -> TileText(
                 if (d["temp_min"] != null && d["temp_max"] != null) "${f(d["temp_min"], 0)} / ${f(d["temp_max"], 0)} °C" else DASH, null)
-            TileKind.TEMP_MOTOR -> TileText(f(l.tempMotor, 0, "°C"), null)
             TileKind.V12 -> TileText(f(l.v12, 1, "V"), null)
             TileKind.CHARGE_POWER -> TileText(f(c.state.charge?.powerKw, 1, "kW"), null)
             TileKind.CHARGED_KWH -> TileText(f(c.state.charge?.chargedKwh, 1, "kWh"), null)

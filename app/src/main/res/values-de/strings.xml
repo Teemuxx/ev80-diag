@@ -18,9 +18,10 @@
     <string name="sig_bms_state_expl">0x06 eingesteckt, 0x15 AC-Laden, 0x16 DC-Laden, 0x1A DC-Ladung beendet, 0x12 vom BMS gestoppt.</string>
     <string name="sig_hv_flags">Hochvolt-Status</string>
     <string name="sig_hv_flags_expl">Bit 0x04 gesetzt: Hochvolt-Schütze geschlossen (READY oder Laden). Bit 0x10: Warnung niedriger Ladestand.</string>
-    <string name="sig_charge_counter">Lebensdauer-Ladezähler</string>
-    <string name="sig_charge_counter_expl">Zählt pro 2 kWh geladener Energie um 1 hoch (über die Lebensdauer).</string>
-    <string name="sig_disch_limit_kw">Entladeleistungs-Limit</string>
+    <string name="sig_charge_counter">Insgesamt geladene Energie</string>
+    <string name="sig_charge_counter_expl">Alle über die Lebensdauer in den Akku geladene Energie, AC und DC, in 2-kWh-Schritten. Fahren und Rekuperation zählen nicht.</string>
+    <string name="sig_disch_limit_kw">Entladeleistung laut BMS</string>
+    <string name="sig_disch_limit_kw_expl">Keine harte Grenze: Beim Beschleunigen wird deutlich mehr entnommen (bis ~90 kW beobachtet). Der Wert ist das Entladestrom-Limit des BMS × Akkuspannung und sinkt, wenn das BMS dieses Limit bei niedrigem Ladestand senkt.</string>
     <string name="sig_regen_limit_kw">Rekuperationsleistungs-Limit</string>
     <string name="sig_charge_current_600">Ladestrom (BMS-Status)</string>
     <string name="sig_charge_minutes_600">Ladedauer (BMS-Status)</string>
@@ -170,10 +171,12 @@
     <string name="outcome_interrupted">unterbrochen (App beendet)</string>
     <string name="session_meta">%1$s · %2$s%3$s</string>
     <string name="share_title">Sitzung teilen</string>
-    <string name="sig_motor_temp">Motortemperatur</string>
-    <string name="sig_motor_temp_expl">Temperatur im Antrieb, steigt während der Fahrt (13–61 °C beobachtet). Wahrscheinlich: welcher der beiden Werte Motor und welcher Wechselrichter ist, ist noch nicht bestätigt.</string>
-    <string name="sig_inverter_temp">Wechselrichtertemperatur</string>
-    <string name="sig_inverter_temp_expl">Zweite Temperatur im Antrieb, nahe am Motorwert. Wahrscheinlich.</string>
+    <string name="sig_drive_temp_302">Antriebstemperatur (unklar)</string>
+    <string name="sig_drive_temp_302_expl">Ein temperaturähnlicher Wert vom Motorsteuergerät (13–61 °C beobachtet). Er ändert sich innerhalb einer Minute mit der Last, ist also wohl nicht der Motor selbst; zu welchem Teil er gehört, ist nicht bestätigt.</string>
+    <string name="sig_accel_pedal_pct">Fahrpedal</string>
+    <string name="sig_accel_pedal_pct_expl">Fahrpedalstellung in %, 0 = losgelassen. Funktioniert auch in P und N.</string>
+    <string name="sig_brake_pedal">Bremspedalweg</string>
+    <string name="sig_brake_pedal_expl">Roher Bremspedalweg: 0 losgelassen, etwa 100–130 getreten (Einheit unbekannt).</string>
     <string name="value_yes">ja</string>
     <string name="value_no">nein</string>
     <string name="bms_state_plugged">Wach / eingesteckt</string>
@@ -210,7 +213,7 @@
     <string name="live_consumption">Verbrauch</string>
     <string name="live_consumption_sub">kWh/100 km jetzt</string>
     <string name="live_v12">12 V</string>
-    <string name="live_temps">Akku / Motor</string>
+    <string name="live_temps">Akkutemperatur</string>
     <string name="spread_ok">normal</string>
     <string name="spread_high">hoch</string>
     <string name="cell_low">niedrig</string>
@@ -235,7 +238,6 @@
     <string name="tile_cons_period">Verbrauch, gewählter Zeitraum</string>
     <string name="tile_temp_batt">Akkutemperatur</string>
     <string name="tile_temp_batt_min_max">Akku min / max</string>
-    <string name="tile_temp_motor">Motortemperatur</string>
     <string name="tile_v12">12-V-Batterie</string>
     <string name="tile_cell_no">Zelle #%1$s</string>
     <string name="tile_spread_mv">%1$s mV</string>

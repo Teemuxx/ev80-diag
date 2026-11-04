@@ -149,7 +149,7 @@ private fun LiveTiles(s: LiveUi, perRow: Int) {
         Triple(stringResource(R.string.live_consumption), s.kwhPer100Now?.let { "%.1f".format(it) } ?: "–",
             stringResource(R.string.live_consumption_sub)),
         Triple(stringResource(R.string.live_v12), s.v12?.let { "%.1f V".format(it) } ?: "–", null),
-        Triple(stringResource(R.string.live_temps), "${s.tempBatt?.let { "%.0f".format(it) } ?: "–"} / ${s.tempMotor?.let { "%.0f".format(it) } ?: "–"} °C", null),
+        Triple(stringResource(R.string.live_temps), s.tempBatt?.let { "%.0f °C".format(it) } ?: "–", null),
     )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         tiles.chunked(perRow).forEach { row ->

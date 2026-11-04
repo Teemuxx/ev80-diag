@@ -25,8 +25,8 @@ object SignalTable {
         SignalDef("insulation_fault", 0x321, 5, 1, "", CHARGING, PROBABLE, R.string.sig_insulation_fault, mask = 0x01),
         SignalDef("bms_state", 0x200, 0, 1, "", CHARGING, VERIFIED, R.string.sig_bms_state, R.string.sig_bms_state_expl),
         SignalDef("hv_flags", 0x580, 1, 1, "", BATTERY, VERIFIED, R.string.sig_hv_flags, R.string.sig_hv_flags_expl),
-        SignalDef("charge_counter", 0x590, 5, 2, "", CHARGING, VERIFIED, R.string.sig_charge_counter, R.string.sig_charge_counter_expl),
-        SignalDef("disch_limit_kw", 0x580, 4, 2, "kW", BATTERY, PROBABLE, R.string.sig_disch_limit_kw, scale = 0.1, offset = -100.0, naRaw = 0x03FF),
+        SignalDef("charge_counter", 0x590, 5, 2, "kWh", CHARGING, VERIFIED, R.string.sig_charge_counter, R.string.sig_charge_counter_expl, scale = 2.0),
+        SignalDef("disch_limit_kw", 0x580, 4, 2, "kW", BATTERY, PROBABLE, R.string.sig_disch_limit_kw, R.string.sig_disch_limit_kw_expl, scale = 0.1, offset = -100.0, naRaw = 0x03FF),
         SignalDef("regen_limit_kw", 0x580, 6, 2, "kW", BATTERY, VERIFIED, R.string.sig_regen_limit_kw, scale = 0.1, offset = -100.0, naRaw = 0x03FF),
         SignalDef("charge_current_600", 0x600, 2, 2, "A", CHARGING, VERIFIED, R.string.sig_charge_current_600, scale = 0.1, offset = -400.0),
         SignalDef("charge_minutes_600", 0x600, 4, 1, "min", CHARGING, VERIFIED, R.string.sig_charge_minutes_600),
@@ -35,8 +35,10 @@ object SignalTable {
         SignalDef("speed_kmh", 0x380, 0, 2, "km/h", DRIVING, VERIFIED, R.string.sig_speed_kmh, scale = 0.01),
         SignalDef("odo_km", 0x380, 2, 3, "km", DRIVING, VERIFIED, R.string.sig_odo_km, scale = 0.1),
         SignalDef("gear", 0x230, 0, 1, "", DRIVING, VERIFIED, R.string.sig_gear, R.string.sig_gear_expl),
-        SignalDef("motor_temp", 0x302, 3, 1, "°C", DRIVING, PROBABLE, R.string.sig_motor_temp, R.string.sig_motor_temp_expl, offset = -40.0),
-        SignalDef("inverter_temp", 0x302, 4, 1, "°C", DRIVING, PROBABLE, R.string.sig_inverter_temp, R.string.sig_inverter_temp_expl, offset = -40.0),
+        SignalDef("accel_pedal_pct", 0x380, 6, 1, "%", DRIVING, VERIFIED, R.string.sig_accel_pedal_pct, R.string.sig_accel_pedal_pct_expl),
+        SignalDef("brake_pedal", 0x260, 3, 1, "", DRIVING, VERIFIED, R.string.sig_brake_pedal, R.string.sig_brake_pedal_expl),
+        // B3 = B4 always (one value); fast-changing, so neither motor nor inverter is confirmed
+        SignalDef("drive_temp_302", 0x302, 3, 1, "°C", DRIVING, PROBABLE, R.string.sig_drive_temp_302, R.string.sig_drive_temp_302_expl, offset = -40.0),
         SignalDef("range_dash_km", 0x08A, 1, 1, "km", DRIVING, VERIFIED, R.string.sig_range_dash_km),
     )
 

@@ -1,6 +1,7 @@
 package io.github.ev80diag.ui.tiles
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TileLayoutTest {
@@ -23,6 +24,14 @@ class TileLayoutTest {
         assertEquals(TileLayout.DEFAULT[1], l[1])
         assertEquals(TileKind.SPEED, l[2].kind)
         for (i in 3 until 8) assertEquals(TileLayout.DEFAULT[i], l[i])
+    }
+
+    /** TEMP_MOTOR was removed (0x302 is not a motor temperature): a stored layout with it falls back in that slot. */
+    @Test fun decode_removedKind_fallsBack() {
+        val l = TileLayout.decode("TEMP_MOTOR;SPEED")
+        assertEquals(TileLayout.DEFAULT[0], l[0])
+        assertEquals(TileKind.SPEED, l[1].kind)
+        assertTrue(TileKind.entries.none { it.name == "TEMP_MOTOR" })
     }
 
     @Test fun periodWithoutTimes_fallsBack() {
