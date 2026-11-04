@@ -11,7 +11,7 @@ import java.util.zip.ZipOutputStream
 
 /**
  * Everything recorded for one van profile as one zip: profile.json, sessions.csv (one row per session),
- * sessions/<name>.ev80 (each session's normal share bundle) and cells.csv.gz (all cell snapshots).
+ * sessions/<id>_<name>.ev80 (each session's normal share bundle; the id keeps two sessions of the same minute apart) and cells.csv.gz (all cell snapshots).
  */
 object ProfileExport {
     const val SESSIONS_HEADER = "id,type,outcome,start_ms,end_ms,charger,charged_kwh,distance_km,drive_kwh,adapter,adapter_name,frames_total,dropped_frames"
@@ -28,14 +28,14 @@ object ProfileExport {
             "${c.tsMs},${if (c.charging) 1 else 0}," + CellBlob.unpack(c.mv).joinToString(",")
         }
 
-    fun write(out: File, profileJson: String, sessionsCsv: Sequence<String>, bundles: List<File>, cellsCsv: Sequence<String>): File {
+    fun write(out: File, profileJson: String, sessionsCsv: Sequence<String>, bundles: List<Pair<Long, File>>, cellsCsv: Sequence<String>): File {
         ZipOutputStream(out.outputStream().buffered()).use { zip ->
             zip.putNextEntry(ZipEntry("profile.json")); zip.write(profileJson.toByteArray(Charsets.UTF_8)); zip.closeEntry()
             zip.putNextEntry(ZipEntry("sessions.csv"))
             sessionsCsv.forEach { zip.write(it.toByteArray(Charsets.UTF_8)); zip.write('\n'.code) }
             zip.closeEntry()
             zip.setLevel(Deflater.NO_COMPRESSION)   // bundles are zips already
-            for (b in bundles) { zip.putNextEntry(ZipEntry("sessions/${b.name}")); b.inputStream().use { it.copyTo(zip) }; zip.closeEntry() }
+            for ((id, b) in bundles) { zip.putNextEntry(ZipEntry("sessions/${id}_${b.name}")); b.inputStream().use { it.copyTo(zip) }; zip.closeEntry() }
             zip.setLevel(Deflater.DEFAULT_COMPRESSION)
             zip.putNextEntry(ZipEntry("cells.csv.gz"))
             GZIPOutputStream(zip).let { gz ->

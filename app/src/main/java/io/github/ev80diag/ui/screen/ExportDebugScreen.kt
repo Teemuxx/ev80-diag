@@ -82,7 +82,7 @@ fun ExportDebugScreen(modifier: Modifier = Modifier, vm: ExportDebugViewModel = 
         if (sessions.isNotEmpty()) OutlinedButton({
             busy = true
             scope.launch {
-                val f = SessionExporter.buildAll(ctx)
+                val f = runCatching { SessionExporter.buildAll(ctx) }.onFailure { DebugLog.log("export all failed: $it") }.getOrNull()
                 busy = false
                 if (f != null) SessionExporter.share(ctx, f, R.string.share_title) else failed = true
             }

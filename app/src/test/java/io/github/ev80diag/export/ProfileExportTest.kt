@@ -30,6 +30,17 @@ class ProfileExportTest {
         assertEquals("3,CHARGE_AC,ENDED,70000,,\"Home, \"\"wallbox\"\"\",0.26,,,STN_BT,,0,0", rows[2])
     }
 
+    /** Two sessions starting in the same minute get the same bundle name (phone, 2026-11-04: duplicate-entry crash). */
+    @Test fun zip_sameBundleNameTwice_bothKept() {
+        val a = File(dir, "a").apply { mkdirs() }.resolve("ev80_ET_20260910_1812_charge_ac.ev80").apply { writeBytes(byteArrayOf(1)) }
+        val b = File(dir, "b").apply { mkdirs() }.resolve("ev80_ET_20260910_1812_charge_ac.ev80").apply { writeBytes(byteArrayOf(2)) }
+        val out = ProfileExport.write(File(dir, "dup.zip"), "{}", ProfileExport.sessionsCsv(emptyList()), listOf(4L to a, 5L to b), emptySequence())
+        ZipFile(out).use { z ->
+            assertArrayEquals(byteArrayOf(1), z.getInputStream(z.getEntry("sessions/4_ev80_ET_20260910_1812_charge_ac.ev80")).readBytes())
+            assertArrayEquals(byteArrayOf(2), z.getInputStream(z.getEntry("sessions/5_ev80_ET_20260910_1812_charge_ac.ev80")).readBytes())
+        }
+    }
+
     @Test fun profileJson_quotesName() {
         val j = ProfileExport.profileJson("ET \"blue\"", "0.3.0-dev", 42, 3)
         assertTrue(j, j.contains("\"profileName\": \"ET \\\"blue\\\"\""))
@@ -49,11 +60,11 @@ class ProfileExportTest {
     @Test fun zip_holdsEverything() {
         val bundle = File(dir, "ev80_ET_20261103_1950_drive.ev80").apply { writeBytes(byteArrayOf(1, 2, 3, 4)) }
         val out = ProfileExport.write(File(dir, "all.zip"), "{\"profileName\": \"ET\"}",
-            ProfileExport.sessionsCsv(sessions), listOf(bundle), sequenceOf(ProfileExport.CELLS_HEADER, "5000,0"))
+            ProfileExport.sessionsCsv(sessions), listOf(2L to bundle), sequenceOf(ProfileExport.CELLS_HEADER, "5000,0"))
         ZipFile(out).use { z ->
             val names = z.entries().toList().map { it.name }
-            assertEquals(listOf("profile.json", "sessions.csv", "sessions/ev80_ET_20261103_1950_drive.ev80", "cells.csv.gz"), names)
-            assertArrayEquals(byteArrayOf(1, 2, 3, 4), z.getInputStream(z.getEntry("sessions/ev80_ET_20261103_1950_drive.ev80")).readBytes())
+            assertEquals(listOf("profile.json", "sessions.csv", "sessions/2_ev80_ET_20261103_1950_drive.ev80", "cells.csv.gz"), names)
+            assertArrayEquals(byteArrayOf(1, 2, 3, 4), z.getInputStream(z.getEntry("sessions/2_ev80_ET_20261103_1950_drive.ev80")).readBytes())
             assertTrue(z.getInputStream(z.getEntry("profile.json")).reader().readText().contains("\"ET\""))
             val cells = GZIPInputStream(z.getInputStream(z.getEntry("cells.csv.gz"))).reader().readLines()
             assertEquals(listOf(ProfileExport.CELLS_HEADER, "5000,0"), cells)
