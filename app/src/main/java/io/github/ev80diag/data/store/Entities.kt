@@ -1,5 +1,6 @@
 package io.github.ev80diag.data.store
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -9,6 +10,22 @@ data class ProfileEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val createdMs: Long,
+    @ColumnInfo(defaultValue = "NULL") val vin: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val notes: String? = null,
+    /** Recognition fingerprint: the last odometer and lifetime charge counter (kWh) seen on this van. */
+    @ColumnInfo(defaultValue = "NULL") val lastOdoKm: Double? = null,
+    @ColumnInfo(defaultValue = "NULL") val lastChargeKwh: Double? = null,
+    @ColumnInfo(defaultValue = "NULL") val lastSeenMs: Long? = null,
+)
+
+/** A note the owner typed at a moment ("range dropped"); [sessionId] is the session open at that time, if any. */
+@Entity(tableName = "mark", indices = [Index("profileId"), Index("sessionId")])
+data class MarkEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val profileId: Long,
+    val sessionId: Long?,
+    val tsMs: Long,
+    val text: String,
 )
 
 /** [type]/[outcome] hold the names of session.SessionType / SessionOutcome. */

@@ -13,6 +13,13 @@ interface ProfileDao {
     @Update suspend fun update(p: ProfileEntity)
     @Query("SELECT * FROM profile ORDER BY id LIMIT 1") suspend fun first(): ProfileEntity?
     @Query("SELECT * FROM profile ORDER BY id") fun all(): Flow<List<ProfileEntity>>
+    @Query("SELECT * FROM profile ORDER BY id") suspend fun list(): List<ProfileEntity>
+    @Query("SELECT * FROM profile WHERE id = :id") suspend fun byId(id: Long): ProfileEntity?
+    /** A null value keeps the stored one (the odometer is only sent with the ignition on). */
+    @Query("UPDATE profile SET lastOdoKm = COALESCE(:odoKm, lastOdoKm), lastChargeKwh = COALESCE(:chargeKwh, lastChargeKwh), " +
+        "lastSeenMs = :ms WHERE id = :id")
+    suspend fun setLastSeen(id: Long, odoKm: Double?, chargeKwh: Double?, ms: Long)
+    @Query("DELETE FROM profile WHERE id = :id") suspend fun delete(id: Long)
 }
 
 @Dao
@@ -21,7 +28,10 @@ interface SessionDao {
     @Update suspend fun update(s: SessionEntity)
     @Query("SELECT * FROM session WHERE id = :id") suspend fun byId(id: Long): SessionEntity?
     @Query("SELECT * FROM session ORDER BY startMs DESC") fun all(): Flow<List<SessionEntity>>
+    @Query("SELECT * FROM session WHERE profileId = :profileId ORDER BY startMs DESC") fun allForProfile(profileId: Long): Flow<List<SessionEntity>>
     @Query("SELECT * FROM session WHERE endMs IS NULL") suspend fun open(): List<SessionEntity>
+    @Query("UPDATE session SET profileId = :profileId WHERE id = :id") suspend fun moveToProfile(id: Long, profileId: Long)
+    @Query("DELETE FROM session WHERE profileId = :profileId") suspend fun deleteForProfile(profileId: Long)
     @Query("SELECT * FROM session WHERE profileId = :profileId ORDER BY startMs") suspend fun listForProfile(profileId: Long): List<SessionEntity>
     // Single-column updates: the pipeline, the Charging screen (charger name) and cleanup write the same row.
     @Query("UPDATE session SET type = :type WHERE id = :id") suspend fun setType(id: Long, type: String)
@@ -48,6 +58,8 @@ interface SampleDao {
     @Query("SELECT * FROM sample WHERE sessionId = :id ORDER BY tsMs") suspend fun listForSession(id: Long): List<SampleEntity>
     @Query("DELETE FROM sample WHERE sessionId = :id") suspend fun deleteForSession(id: Long)
     @Query("SELECT MAX(tsMs) FROM sample WHERE sessionId = :id") suspend fun lastTs(id: Long): Long?
+    @Query("DELETE FROM sample WHERE sessionId IN (SELECT id FROM session WHERE profileId = :profileId)")
+    suspend fun deleteForProfile(profileId: Long)
 }
 
 @Dao
@@ -67,4 +79,19 @@ interface CellSnapshotDao {
     suspend fun atTimes(profileId: Long, times: List<Long>): List<CellSnapshotEntity>
     @Query("SELECT * FROM cell_snapshot WHERE profileId = :profileId AND tsMs <= :ts ORDER BY tsMs DESC LIMIT 1")
     suspend fun latestAtOrBefore(profileId: Long, ts: Long): CellSnapshotEntity?
+    @Query("UPDATE OR REPLACE cell_snapshot SET profileId = :to WHERE profileId = :from AND tsMs >= :sinceMs")
+    suspend fun moveToProfile(from: Long, to: Long, sinceMs: Long)
+    @Query("DELETE FROM cell_snapshot WHERE profileId = :profileId") suspend fun deleteForProfile(profileId: Long)
+}
+
+@Dao
+interface MarkDao {
+    @Insert suspend fun insert(m: MarkEntity): Long
+    @Query("SELECT * FROM mark WHERE profileId = :profileId ORDER BY tsMs DESC LIMIT :limit")
+    fun recent(profileId: Long, limit: Int): Flow<List<MarkEntity>>
+    @Query("SELECT * FROM mark WHERE sessionId = :sessionId ORDER BY tsMs") suspend fun forSession(sessionId: Long): List<MarkEntity>
+    @Query("SELECT * FROM mark WHERE profileId = :profileId ORDER BY tsMs") suspend fun listForProfile(profileId: Long): List<MarkEntity>
+    @Query("UPDATE mark SET profileId = :to WHERE profileId = :from AND tsMs >= :sinceMs")
+    suspend fun moveToProfile(from: Long, to: Long, sinceMs: Long)
+    @Query("DELETE FROM mark WHERE profileId = :profileId") suspend fun deleteForProfile(profileId: Long)
 }
