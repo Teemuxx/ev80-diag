@@ -22,16 +22,19 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import io.github.ev80diag.data.store.ProfileEntity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -61,16 +64,16 @@ import io.github.ev80diag.ui.theme.StatusGood
 private const val ACTION_USB_PERMISSION = "io.github.ev80diag.USB_PERMISSION"
 
 @Composable
-fun ConnectScreen(modifier: Modifier = Modifier, vm: ConnectViewModel = viewModel()) {
+fun ConnectScreen(modifier: Modifier = Modifier, onEditVan: (Long) -> Unit = {}, vm: ConnectViewModel = viewModel()) {
     val ctx = LocalContext.current
     val state by Recorder.state.collectAsState()
-    val profile by vm.profile.collectAsState()
+    val vans by vm.vans.collectAsState()
+    val activeVan by vm.active.collectAsState()
     var useUsb by remember { mutableStateOf(vm.settings.lastSource == LastSource.USB) }
     var address by remember { mutableStateOf(vm.settings.lastBluetoothAddress) }
     var paired by remember { mutableStateOf(vm.pairedDevices()) }
     var usbAdapters by remember { mutableStateOf(vm.usbAdapters()) }
     var permissionHint by remember { mutableStateOf(false) }
-    var nameDraft by remember(profile?.id) { mutableStateOf(profile?.name.orEmpty()) }
     val connected = state.link == LinkStatus.CONNECTING || state.link == LinkStatus.CONNECTED || state.link == LinkStatus.LOST
 
     fun connectNow() {
@@ -142,9 +145,9 @@ fun ConnectScreen(modifier: Modifier = Modifier, vm: ConnectViewModel = viewMode
     }
 
     Column(modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(nameDraft, { nameDraft = it }, label = { Text(stringResource(R.string.connect_van_name)) },
-            singleLine = true, modifier = Modifier.fillMaxWidth())
-        LaunchedEffect(nameDraft) { kotlinx.coroutines.delay(800); vm.rename(nameDraft) }
+        Text(stringResource(R.string.vans_title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        vans.forEach { v -> VanCard(v, selected = v.id == activeVan?.id, onSelect = { vm.select(v.id) }, onEdit = { onEditVan(v.id) }) }
+        TextButton({ onEditVan(0L) }) { Text(stringResource(R.string.van_add)) }
 
         Text(stringResource(R.string.connect_adapter), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 
@@ -187,6 +190,30 @@ fun ConnectScreen(modifier: Modifier = Modifier, vm: ConnectViewModel = viewMode
             OutlinedButton({ replayPicker.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth()) { Text(stringResource(R.string.replay_button)) }
         }
     }
+}
+
+@Composable
+private fun VanCard(van: ProfileEntity, selected: Boolean, onSelect: () -> Unit, onEdit: () -> Unit) {
+    Card(Modifier.fillMaxWidth().selectable(selected, role = Role.RadioButton, onClick = onSelect),
+        border = BorderStroke(if (selected) 2.dp else 0.dp, if (selected) MaterialTheme.colorScheme.primary else Color.Transparent),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Row(Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(van.name, style = MaterialTheme.typography.titleMedium)
+                Text(vanSubtitle(van), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            IconButton(onEdit) { Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.van_edit_title)) }
+        }
+    }
+}
+
+/** "49,551 km · last seen 05.11. 14:20", or "not seen yet". */
+@Composable
+fun vanSubtitle(van: ProfileEntity): String {
+    val seen = van.lastSeenMs ?: return stringResource(R.string.van_not_seen)
+    val time = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(seen))
+    val odo = van.lastOdoKm?.let { "%,.0f km".format(it) }
+    return if (odo == null) stringResource(R.string.van_last_seen, time) else stringResource(R.string.van_odo_last_seen, odo, time)
 }
 
 @Composable

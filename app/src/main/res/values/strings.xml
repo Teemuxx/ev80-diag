@@ -90,7 +90,6 @@
     <string name="placeholder_screen">Coming in the next step</string>
     <string name="unit_decrease">Decrease</string>
     <string name="unit_increase">Increase</string>
-    <string name="connect_van_name">Van name</string>
     <string name="connect_adapter">Adapter</string>
     <string name="adapter_obdlink">OBDLink (Bluetooth)</string>
     <string name="adapter_obdlink_hint">Choose your paired adapter</string>
@@ -279,4 +278,39 @@
     <string name="details_unknown">unknown</string>
     <string name="details_last_10min">last 10 min (%1$s)</string>
     <string name="details_no_history">No history yet (it starts when this screen opens).</string>
+    <!-- van profiles, mark a moment (0.4) -->
+    <string name="vans_title">Vans</string>
+    <string name="van_add">＋ Add van</string>
+    <string name="van_not_seen">not seen yet</string>
+    <string name="van_last_seen">last seen %1$s</string>
+    <string name="van_odo_last_seen">%1$s · last seen %2$s</string>
+    <string name="van_new_title">New van</string>
+    <string name="van_edit_title">Edit van</string>
+    <string name="van_field_name">Name</string>
+    <string name="van_field_vin">VIN (optional)</string>
+    <string name="van_field_capacity">Usable capacity (Ah)</string>
+    <string name="van_field_capacity_hint">Used by the app\'s own SOC estimate (50–300 Ah).</string>
+    <string name="van_field_notes">Notes (e.g. 2026-06-19 cells rebalanced)</string>
+    <string name="van_recognition">Recognition: odometer %1$s · charge counter %2$s</string>
+    <plurals name="van_data_size">
+        <item quantity="one">%1$d session · raw logs %2$s</item>
+        <item quantity="other">%1$d sessions · raw logs %2$s</item>
+    </plurals>
+    <string name="van_delete">Delete van</string>
+    <string name="van_delete_only_one">The only van can\'t be deleted; rename it instead.</string>
+    <string name="van_delete_disconnect_first">Disconnect first to delete a van.</string>
+    <string name="van_delete_q1">Delete %1$s with all its sessions, raw logs and battery history?</string>
+    <string name="van_delete_export_first">Export all of %1$s first</string>
+    <string name="van_delete_continue">Continue</string>
+    <string name="van_delete_q2">Really delete %1$s? This cannot be undone.</string>
+    <string name="van_delete_confirm">Delete</string>
+    <string name="van_switched">Switched to %1$s (%2$s matches)</string>
+    <string name="evidence_odometer">odometer</string>
+    <string name="evidence_counter">charge counter</string>
+    <string name="undo">Undo</string>
+    <string name="van_ask_title">Which van is this?</string>
+    <string name="van_ask_text">Odometer and charge counter don\'t clearly match one van. Until you choose, recording goes to %1$s.</string>
+    <string name="mark_title">Mark a moment</string>
+    <string name="mark_hint">What happened? (e.g. range dropped)</string>
+    <string name="mark_recent">Recent marks</string>
 </resources>

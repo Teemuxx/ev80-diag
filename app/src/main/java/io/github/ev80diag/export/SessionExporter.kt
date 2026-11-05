@@ -48,10 +48,10 @@ object SessionExporter {
         }
     }
 
-    /** Everything recorded for the active van as one zip ([ProfileExport]), or null when nothing is recorded yet. */
-    suspend fun buildAll(ctx: Context): File? = withContext(Dispatchers.IO) {
+    /** Everything recorded for a van (default: the active one) as one zip ([ProfileExport]), or null when nothing is recorded yet. */
+    suspend fun buildAll(ctx: Context, profileId: Long? = null): File? = withContext(Dispatchers.IO) {
         val db = Ev80Database.get(ctx)
-        val profile = ActiveProfile.current(ctx)
+        val profile = profileId?.let { db.profiles().byId(it) } ?: ActiveProfile.current(ctx)
         val sessions = db.sessions().listForProfile(profile.id)
         if (sessions.isEmpty()) return@withContext null
         // each bundle moves to its own folder: two sessions of the same minute share a bundle name

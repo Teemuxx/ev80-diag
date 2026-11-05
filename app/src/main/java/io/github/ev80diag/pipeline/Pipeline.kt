@@ -256,7 +256,6 @@ class Pipeline(
         var seenCharge: Double? = null
         var lastSeenSave = 0L
         var event: ProfileEvent? = null
-        var eventSeq = 0
 
         suspend fun apply(events: List<SessionEvent>) {
             for (e in events) when (e) {
@@ -338,11 +337,11 @@ class Pipeline(
             when (val r = VanRecognizer.recognize(vans, seenOdo, seenCharge)) {
                 is Recognition.Match -> {
                     val from = _profileId.value
-                    if (r.id != from) { moveTo(r.id); event = ProfileEvent.Switched(from, r.id, r.by, ++eventSeq) }
+                    if (r.id != from) { moveTo(r.id); event = ProfileEvent.Switched(from, r.id, r.by, EVENT_SEQ.incrementAndGet()) }
                     confirmed = true
                     soc.onProfile(r.id)
                 }
-                is Recognition.Unclear -> event = ProfileEvent.Ask(r.candidates, ++eventSeq)
+                is Recognition.Unclear -> event = ProfileEvent.Ask(r.candidates, EVENT_SEQ.incrementAndGet())
                 Recognition.NoEvidence -> decided = false
             }
             DebugLog.log("van recognition: odo $seenOdo km, counter $seenCharge kWh -> ${event ?: "van ${_profileId.value}"}")
@@ -491,5 +490,7 @@ class Pipeline(
         /** After the first odometer or counter value, wait this long for the other one before deciding. */
         const val EVIDENCE_WAIT_MS = 3_000L
         const val LAST_SEEN_EVERY_MS = 60_000L
+        /** App-wide, so the UI can tell a new event of a later connection from one it already showed. */
+        val EVENT_SEQ = AtomicInteger()
     }
 }

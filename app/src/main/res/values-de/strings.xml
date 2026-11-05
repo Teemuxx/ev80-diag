@@ -90,7 +90,6 @@
     <string name="placeholder_screen">Kommt im nächsten Schritt</string>
     <string name="unit_decrease">Verringern</string>
     <string name="unit_increase">Erhöhen</string>
-    <string name="connect_van_name">Name des Fahrzeugs</string>
     <string name="connect_adapter">Adapter</string>
     <string name="adapter_obdlink">OBDLink (Bluetooth)</string>
     <string name="adapter_obdlink_hint">Gekoppelten Adapter wählen</string>
@@ -279,4 +278,39 @@
     <string name="details_unknown">unbekannt</string>
     <string name="details_last_10min">letzte 10 min (%1$s)</string>
     <string name="details_no_history">Noch kein Verlauf (er beginnt, wenn dieser Bildschirm geöffnet wird).</string>
+    <!-- van profiles, mark a moment (0.4) -->
+    <string name="vans_title">Fahrzeuge</string>
+    <string name="van_add">＋ Fahrzeug hinzufügen</string>
+    <string name="van_not_seen">noch nicht verbunden</string>
+    <string name="van_last_seen">zuletzt %1$s</string>
+    <string name="van_odo_last_seen">%1$s · zuletzt %2$s</string>
+    <string name="van_new_title">Neues Fahrzeug</string>
+    <string name="van_edit_title">Fahrzeug bearbeiten</string>
+    <string name="van_field_name">Name</string>
+    <string name="van_field_vin">FIN (optional)</string>
+    <string name="van_field_capacity">Nutzbare Kapazität (Ah)</string>
+    <string name="van_field_capacity_hint">Für die app-eigene SOC-Schätzung (50–300 Ah).</string>
+    <string name="van_field_notes">Notizen (z. B. 2026-06-19 Zellen ausgeglichen)</string>
+    <string name="van_recognition">Erkennung: Kilometerstand %1$s · Ladezähler %2$s</string>
+    <plurals name="van_data_size">
+        <item quantity="one">%1$d Sitzung · Rohlogs %2$s</item>
+        <item quantity="other">%1$d Sitzungen · Rohlogs %2$s</item>
+    </plurals>
+    <string name="van_delete">Fahrzeug löschen</string>
+    <string name="van_delete_only_one">Das einzige Fahrzeug kann nicht gelöscht werden; benenne es stattdessen um.</string>
+    <string name="van_delete_disconnect_first">Zum Löschen erst trennen.</string>
+    <string name="van_delete_q1">%1$s mit allen Sitzungen, Rohlogs und dem Akkuverlauf löschen?</string>
+    <string name="van_delete_export_first">Erst alles von %1$s exportieren</string>
+    <string name="van_delete_continue">Weiter</string>
+    <string name="van_delete_q2">%1$s wirklich löschen? Das lässt sich nicht rückgängig machen.</string>
+    <string name="van_delete_confirm">Löschen</string>
+    <string name="van_switched">Zu %1$s gewechselt (%2$s passt)</string>
+    <string name="evidence_odometer">Kilometerstand</string>
+    <string name="evidence_counter">Ladezähler</string>
+    <string name="undo">Rückgängig</string>
+    <string name="van_ask_title">Welches Fahrzeug ist das?</string>
+    <string name="van_ask_text">Kilometerstand und Ladezähler passen nicht eindeutig zu einem Fahrzeug. Bis zur Auswahl wird für %1$s aufgezeichnet.</string>
+    <string name="mark_title">Moment markieren</string>
+    <string name="mark_hint">Was ist passiert? (z. B. Reichweite gefallen)</string>
+    <string name="mark_recent">Letzte Markierungen</string>
 </resources>

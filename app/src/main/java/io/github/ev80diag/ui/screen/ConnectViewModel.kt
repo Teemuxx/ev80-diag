@@ -7,17 +7,15 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.ev80diag.R
 import io.github.ev80diag.data.store.Ev80Database
 import io.github.ev80diag.data.store.ProfileEntity
-import io.github.ev80diag.data.store.RoomSessionRepository
+import io.github.ev80diag.profile.ActiveProfile
+import io.github.ev80diag.service.Recorder
 import io.github.ev80diag.settings.AppSettings
 import io.github.ev80diag.transport.GsUsbProtocol
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 data class BtDevice(val name: String, val address: String)
 
@@ -25,17 +23,11 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
     private val db = Ev80Database.get(app)
     val settings = AppSettings(app)
 
-    val profile: StateFlow<ProfileEntity?> = db.profiles().all().map { it.firstOrNull() }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val vans: StateFlow<List<ProfileEntity>> = db.profiles().all().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val active: StateFlow<ProfileEntity?> = ActiveProfile.flow(app)
 
-    init {
-        viewModelScope.launch { RoomSessionRepository(db).ensureDefaultProfile(app.getString(R.string.default_van_name)) }
-    }
-
-    fun rename(name: String) {
-        val p = profile.value ?: return
-        if (name.isNotBlank() && name != p.name) viewModelScope.launch { db.profiles().update(p.copy(name = name.trim())) }
-    }
+    /** Tapping a van card: while recording, this connection's data moves to that van too. */
+    fun select(id: Long) { if (id != active.value?.id) Recorder.chooseProfile(getApplication(), id) }
 
     /** Paired Bluetooth devices, OBDLink adapters first. Needs BLUETOOTH_CONNECT on Android 12+. */
     @SuppressLint("MissingPermission")

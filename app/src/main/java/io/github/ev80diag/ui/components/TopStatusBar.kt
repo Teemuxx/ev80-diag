@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.PlayArrow
@@ -67,7 +68,7 @@ private fun chipFor(s: RecorderState): Chip = when {
 /** Van name, adapter, state chip (always icon + text, never colour alone) and the app version. */
 @Composable
 fun TopStatusBar(state: RecorderState, vanName: String, modifier: Modifier = Modifier, gear: String? = null,
-                 warning: Pair<Level, Int?> = Level.OK to null, onVanClick: () -> Unit = {}) {
+                 warning: Pair<Level, Int?> = Level.OK to null, onVanClick: () -> Unit = {}, onMark: (() -> Unit)? = null) {
     val base = chipFor(state)
     val (level, warnRes) = warning
     val chip = when {
@@ -92,6 +93,10 @@ fun TopStatusBar(state: RecorderState, vanName: String, modifier: Modifier = Mod
                 Text(text, fontSize = 11.sp, color = chip.color)
             }
         }
-        Text("v" + BuildConfig.VERSION_NAME, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (onMark != null) Icon(Icons.Filled.BookmarkAdd, contentDescription = stringResource(R.string.mark_title),
+                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable(onClick = onMark).padding(end = 8.dp))
+            Text("v" + BuildConfig.VERSION_NAME, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

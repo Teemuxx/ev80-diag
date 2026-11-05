@@ -86,7 +86,8 @@ class ProfileSwitchTest {
     @Test fun twoVans_counterMatchesOther_switchesAndMovesData() {
         val repo = FakeRepo().apply { vans = listOf(et, lytee) }
         val r = run("terra60l_trip.log.gz", repo)
-        assertEquals(listOf<ProfileEvent>(ProfileEvent.Switched(1, 2, Evidence.CHARGE_COUNTER, 1)), r.events)
+        val e = r.events.single()
+        assertEquals(ProfileEvent.Switched(1, 2, Evidence.CHARGE_COUNTER, e.seq), e)
         assertEquals(2L, r.p.profileId.value)
         assertTrue(repo.sessions.isNotEmpty())
         assertTrue(repo.sessions.all { it.profileId == 2L })

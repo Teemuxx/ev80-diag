@@ -51,6 +51,11 @@ import androidx.navigation.compose.rememberNavController
 import io.github.ev80diag.R
 import io.github.ev80diag.service.Recorder
 import io.github.ev80diag.ui.components.TopStatusBar
+import io.github.ev80diag.ui.components.MarkDialog
+import io.github.ev80diag.ui.components.ProfileEventUi
+import io.github.ev80diag.ui.screen.VanEditScreen
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import io.github.ev80diag.ui.screen.ChargingScreen
 import io.github.ev80diag.export.ExportFormat
 import io.github.ev80diag.ui.screen.ConnectScreen
@@ -126,8 +131,17 @@ fun AppNavGraph(vanName: String) {
     val warning = if (live.stale) Level.OK to null else TopBarWarning.of(live, insulation)
     val gear = state.decoded["gear"]?.let { SignalFormat.gearLetter(it) }
 
+    val vans by io.github.ev80diag.data.store.Ev80Database.get(ctx).profiles().all().collectAsState(emptyList())
+    val activeVan by io.github.ev80diag.profile.ActiveProfile.flow(ctx).collectAsState()
+    val snackbar = androidx.compose.runtime.remember { SnackbarHostState() }
+    ProfileEventUi(state.profileEvent, vans, activeVan?.id, snackbar)
+    var marking by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    if (marking) MarkDialog(onDismiss = { marking = false })
+
     Scaffold(
-        topBar = { TopStatusBar(state, vanName, gear = gear, warning = warning, onVanClick = { go(Screen.Connect.route) }) },
+        snackbarHost = { SnackbarHost(snackbar) },
+        topBar = { TopStatusBar(state, vanName, gear = gear, warning = warning, onVanClick = { go(Screen.Connect.route) },
+            onMark = if (state.link == LinkStatus.CONNECTED) ({ marking = true }) else null) },
         bottomBar = {
             val destination = navController.currentBackStackEntryAsState().value?.destination
             fun selected(s: Screen) = destination?.hierarchy?.any { it.route == s.route } == true
@@ -166,7 +180,10 @@ fun AppNavGraph(vanName: String) {
             composable(Screen.Tiles.route) { TilesScreen() }
             composable(Screen.Battery.route) { BatteryScreen() }
             composable(Screen.Details.route) { DetailsScreen() }
-            composable(Screen.Connect.route) { ConnectScreen() }
+            composable(Screen.Connect.route) { ConnectScreen(onEditVan = { id -> navController.navigate(Screen.VanEdit.of(id)) }) }
+            composable(Screen.VanEdit.route) { entry ->
+                VanEditScreen(entry.arguments?.getString("id")?.toLongOrNull() ?: 0L, onDone = { navController.popBackStack() })
+            }
             composable(Screen.Charging.route) { ChargingScreen(onShare = { id -> scope.launch { shareSession(ctx, id, ExportFormat.BUNDLE) } }) }
             composable(Screen.Export.route) { ExportDebugScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }
