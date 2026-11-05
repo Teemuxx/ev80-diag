@@ -1,5 +1,6 @@
 package io.github.ev80diag.data.store
 
+import io.github.ev80diag.profile.VanPrint
 import io.github.ev80diag.session.SessionOutcome
 import io.github.ev80diag.session.SessionType
 
@@ -12,6 +13,11 @@ interface SessionRepository {
     suspend fun addSample(sample: SampleEntity)
     suspend fun setDriveTotals(id: Long, km: Double, kwh: Double)
     suspend fun addCellSnapshot(s: CellSnapshotEntity)
+    suspend fun vans(): List<VanPrint>
+    /** Recognition decided late: the open session, and cell snapshots and marks since [sinceMs], belong to [to]. */
+    suspend fun moveConnectionData(sessionId: Long?, from: Long, to: Long, sinceMs: Long)
+    suspend fun setLastSeen(profileId: Long, odoKm: Double?, chargeKwh: Double?, ms: Long)
+    suspend fun addMark(m: MarkEntity)
 }
 
 class RoomSessionRepository(private val db: Ev80Database) : SessionRepository {
@@ -44,7 +50,20 @@ class RoomSessionRepository(private val db: Ev80Database) : SessionRepository {
 
     override suspend fun addCellSnapshot(s: CellSnapshotEntity) = db.cellSnapshots().insert(s)
 
-    /** The profile used until real profiles exist (stage 3). */
+    override suspend fun vans() = db.profiles().list().map { VanPrint(it.id, it.lastOdoKm, it.lastChargeKwh) }
+
+    override suspend fun moveConnectionData(sessionId: Long?, from: Long, to: Long, sinceMs: Long) {
+        sessionId?.let { db.sessions().moveToProfile(it, to) }
+        db.cellSnapshots().moveToProfile(from, to, sinceMs)
+        db.marks().moveToProfile(from, to, sinceMs)
+    }
+
+    override suspend fun setLastSeen(profileId: Long, odoKm: Double?, chargeKwh: Double?, ms: Long) =
+        db.profiles().setLastSeen(profileId, odoKm, chargeKwh, ms)
+
+    override suspend fun addMark(m: MarkEntity) { db.marks().insert(m) }
+
+    /** The first van, created on first start. */
     suspend fun ensureDefaultProfile(name: String): ProfileEntity =
         db.profiles().first() ?: ProfileEntity(name = name, createdMs = System.currentTimeMillis())
             .let { it.copy(id = db.profiles().insert(it)) }

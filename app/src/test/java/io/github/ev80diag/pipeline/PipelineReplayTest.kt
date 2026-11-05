@@ -21,13 +21,13 @@ import org.junit.Test
 
 class PipelineReplayTest {
     class FakeRepo : SessionRepository {
-        data class S(val id: Long, var type: SessionType, val startMs: Long, var outcome: SessionOutcome? = null,
+        data class S(val id: Long, var profileId: Long, var type: SessionType, val startMs: Long, var outcome: SessionOutcome? = null,
                      var endMs: Long? = null, var charged: Double? = null, var raw: String? = null, var marks: String? = null,
                      var frames: Long = 0, var dropped: Long = 0, var km: Double? = null, var kwh: Double? = null)
         val sessions = ArrayList<S>()
         val samples = ArrayList<SampleEntity>()
         override suspend fun startSession(profileId: Long, type: SessionType, startMs: Long, adapterKind: String, adapterName: String?): Long {
-            sessions.add(S(sessions.size + 1L, type, startMs)); return sessions.size.toLong()
+            sessions.add(S(sessions.size + 1L, profileId, type, startMs)); return sessions.size.toLong()
         }
         override suspend fun updateType(id: Long, type: SessionType) { sessions[(id - 1).toInt()].type = type }
         override suspend fun setRawPaths(id: Long, rawLogPath: String, marksPath: String) {
@@ -40,6 +40,24 @@ class PipelineReplayTest {
         val snapshots = ArrayList<io.github.ev80diag.data.store.CellSnapshotEntity>()
         override suspend fun setDriveTotals(id: Long, km: Double, kwh: Double) { sessions[(id - 1).toInt()].apply { this.km = km; this.kwh = kwh } }
         override suspend fun addCellSnapshot(s: io.github.ev80diag.data.store.CellSnapshotEntity) { snapshots.add(s) }
+
+        var vans = listOf(io.github.ev80diag.profile.VanPrint(1, null, null))
+        data class Move(val sessionId: Long?, val from: Long, val to: Long, val sinceMs: Long)
+        val moves = ArrayList<Move>()
+        val lastSeen = HashMap<Long, Pair<Double?, Double?>>()
+        val marks = ArrayList<io.github.ev80diag.data.store.MarkEntity>()
+        override suspend fun vans() = vans
+        override suspend fun moveConnectionData(sessionId: Long?, from: Long, to: Long, sinceMs: Long) {
+            moves.add(Move(sessionId, from, to, sinceMs))
+            sessionId?.let { sessions[(it - 1).toInt()].profileId = to }
+            snapshots.replaceAll { if (it.profileId == from && it.tsMs >= sinceMs) it.copy(profileId = to) else it }
+            marks.replaceAll { if (it.profileId == from && it.tsMs >= sinceMs) it.copy(profileId = to) else it }
+        }
+        override suspend fun setLastSeen(profileId: Long, odoKm: Double?, chargeKwh: Double?, ms: Long) {
+            val old = lastSeen[profileId]
+            lastSeen[profileId] = (odoKm ?: old?.first) to (chargeKwh ?: old?.second)
+        }
+        override suspend fun addMark(m: io.github.ev80diag.data.store.MarkEntity) { marks.add(m) }
     }
 
     private fun fixture(name: String): () -> java.io.InputStream = { io.github.ev80diag.TestLogs.resource("fixtures/$name") }

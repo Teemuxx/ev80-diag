@@ -1,6 +1,7 @@
 package io.github.ev80diag.pipeline
 
 import io.github.ev80diag.calc.DriveSnapshot
+import io.github.ev80diag.profile.Evidence
 import io.github.ev80diag.session.PowerState
 import io.github.ev80diag.session.SessionType
 import io.github.ev80diag.session.VanState
@@ -11,6 +12,15 @@ enum class SourceResult { NONE, ENDED, REFUSED, FAILED }
 data class SessionInfo(val id: Long, val type: SessionType, val startMs: Long)
 
 data class ChargeSnapshot(val powerKw: Double, val chargedKwh: Double, val elapsedMs: Long, val timeToFullMin: Double?)
+
+/** Van recognition news for the UI; [seq] tells a new event from the same one shown again. */
+sealed interface ProfileEvent {
+    val seq: Int
+    /** Switched automatically; "Undo" chooses [from]. */
+    data class Switched(val from: Long, val to: Long, val by: Evidence, override val seq: Int) : ProfileEvent
+    /** Not clear which van this is: the owner picks one of [candidates]. */
+    data class Ask(val candidates: List<Long>, override val seq: Int) : ProfileEvent
+}
 
 /** Everything the UI needs, published a few times per second. */
 data class RecorderState(
@@ -34,4 +44,7 @@ data class RecorderState(
     val drive: DriveSnapshot? = null,
     /** Time since the pack current last stepped by ≥ 50 A (spread warning waits 60 s). */
     val msSinceLoadChange: Long? = null,
+    /** False while it isn't settled which van this is (the app SOC waits until then). */
+    val profileConfirmed: Boolean = false,
+    val profileEvent: ProfileEvent? = null,
 )

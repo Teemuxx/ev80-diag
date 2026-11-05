@@ -7,8 +7,12 @@ import io.github.ev80diag.can.CanFrame
 import io.github.ev80diag.charging.ChargeMetrics
 import io.github.ev80diag.data.store.CellBlob
 import io.github.ev80diag.data.store.CellSnapshotEntity
+import io.github.ev80diag.data.store.MarkEntity
 import io.github.ev80diag.data.store.SampleEntity
 import io.github.ev80diag.data.store.SessionRepository
+import io.github.ev80diag.profile.Recognition
+import io.github.ev80diag.profile.VanPrint
+import io.github.ev80diag.profile.VanRecognizer
 import io.github.ev80diag.recording.PreRollBuffer
 import io.github.ev80diag.recording.RawLogWriter
 import io.github.ev80diag.session.PowerState
@@ -52,16 +56,27 @@ import kotlin.coroutines.coroutineContext
  * One Pipeline outlives reconnects, so a Bluetooth hiccup doesn't split a charge session.
  *
  * [replayMode] is for replaying a log file: the bus blocks the (much faster than real time) source instead of dropping.
+ *
+ * Van recognition: recording starts on [profileId] (the active van). With [recognize] and more than one van, the first
+ * odometer / charge-counter values of each connection decide which van this is ([VanRecognizer]). A clear other van
+ * takes over everything recorded since the connection started; an unclear result asks the owner ([chooseProfile]).
+ * Until it is settled the app SOC gets no input, so the wrong van's estimate is never touched.
  */
 class Pipeline(
     private val sessionsDir: File,
     private val fullCanLogging: () -> FullCanLogging,
     private val repo: SessionRepository,
-    private val profileId: Long,
+    profileId: Long,
     private val soc: SocFeed = SocFeed.None,
     private val clock: () -> Long = System::currentTimeMillis,
     private val replayMode: Boolean = false,
+    /** False for replays: an old log never switches the van or overwrites its last-seen values. */
+    private val recognize: Boolean = true,
 ) {
+    private val _profileId = MutableStateFlow(profileId)
+    /** The van this pipeline records into; changes when recognition or the owner picks another one. */
+    val profileId: StateFlow<Long> = _profileId
+
     private val _state = MutableStateFlow(RecorderState())
     val state: StateFlow<RecorderState> = _state
 
@@ -85,8 +100,19 @@ class Pipeline(
 
     private val cmds = Channel<RawCmd>(Channel.UNLIMITED)
 
-    /** Adds a timestamped note to the open session's marks file. */
-    fun mark(text: String) { cmds.trySend(RawCmd.Mark(clock(), text)) }
+    /** Owner input for the decode consumer, so it is ordered with the frames. */
+    private sealed interface Ctl {
+        data class Choose(val profileId: Long) : Ctl
+        data class Mark(val tsMs: Long, val text: String) : Ctl
+    }
+
+    private val ctl = Channel<Ctl>(Channel.UNLIMITED)
+
+    /** Saves a timestamped note (database, and the open session's marks file when there is a raw log). */
+    fun mark(text: String) { ctl.trySend(Ctl.Mark(clock(), text)) }
+
+    /** The owner's answer to [ProfileEvent.Ask], an Undo of [ProfileEvent.Switched], or a tap on another van. */
+    fun chooseProfile(id: Long) { ctl.trySend(Ctl.Choose(id)) }
 
     /**
      * Runs until [nextSource] returns null. It is called first with [SourceResult.NONE], then after each source
@@ -220,10 +246,22 @@ class Pipeline(
         var storedCells: Any? = null
         var lastCellsTs = 0L
 
+        // van recognition, per connection (re-armed when frames return after a gap with no session open)
+        var armTs: Long? = null
+        var vans: List<VanPrint> = emptyList()
+        var decided = false
+        var confirmed = false
+        var firstEvidenceTs: Long? = null
+        var seenOdo: Double? = null
+        var seenCharge: Double? = null
+        var lastSeenSave = 0L
+        var event: ProfileEvent? = null
+        var eventSeq = 0
+
         suspend fun apply(events: List<SessionEvent>) {
             for (e in events) when (e) {
                 is SessionEvent.Started -> {
-                    val id = repo.startSession(profileId, e.type, e.startMs, adapterKind, adapterName)
+                    val id = repo.startSession(_profileId.value, e.type, e.startMs, adapterKind, adapterName)
                     openId = id; openType = e.type; openStart = e.startMs
                     framesAtStart = frames; droppedAtStart = sub.dropped.get() + raw.dropped.get()
                     metrics = if (e.type != SessionType.DRIVE) ChargeMetrics() else null
@@ -271,10 +309,62 @@ class Pipeline(
                 session = openId?.let { SessionInfo(it, openType, openStart) },
                 charge = if (m != null && m.powerKw > 0) ChargeSnapshot(m.powerKw, m.chargedKwh, m.elapsedMs, m.timeToFullMin()) else null,
                 droppedByConsumer = mapOf("decode" to sub.dropped.get(), "raw" to raw.dropped.get()),
-                errorLines = errorLines.get(), framesTotal = frames, socAppPercent = soc.socPercent(),
+                errorLines = errorLines.get(), framesTotal = frames, socAppPercent = if (confirmed) soc.socPercent() else null,
                 raw = HashMap(decoder.lastRaw),
                 drive = drive?.snapshot(), msSinceLoadChange = load.msSinceChange(now),
+                profileConfirmed = confirmed, profileEvent = event,
             )
+        }
+
+        suspend fun moveTo(to: Long) {
+            val from = _profileId.value
+            if (to == from) return
+            repo.moveConnectionData(openId, from, to, armTs ?: Long.MAX_VALUE)
+            _profileId.value = to
+            DebugLog.log("van $from -> $to")
+        }
+
+        suspend fun arm(ts: Long) {
+            armTs = ts; firstEvidenceTs = null; seenOdo = null; seenCharge = null; lastSeenSave = 0L
+            vans = if (recognize) repo.vans() else emptyList()
+            decided = vans.size <= 1
+            confirmed = decided
+            publish(ts, force = true)
+        }
+
+        suspend fun decide(now: Long) {
+            decided = true
+            when (val r = VanRecognizer.recognize(vans, seenOdo, seenCharge)) {
+                is Recognition.Match -> {
+                    val from = _profileId.value
+                    if (r.id != from) { moveTo(r.id); event = ProfileEvent.Switched(from, r.id, r.by, ++eventSeq) }
+                    confirmed = true
+                }
+                is Recognition.Unclear -> event = ProfileEvent.Ask(r.candidates, ++eventSeq)
+                Recognition.NoEvidence -> decided = false
+            }
+            DebugLog.log("van recognition: odo $seenOdo km, counter $seenCharge kWh -> ${event ?: "van ${_profileId.value}"}")
+            publish(now, force = true)
+        }
+
+        suspend fun saveLastSeen(now: Long) {
+            if (!recognize || !confirmed || (seenOdo == null && seenCharge == null)) return
+            lastSeenSave = now
+            repo.setLastSeen(_profileId.value, seenOdo, seenCharge, clock())
+        }
+
+        suspend fun onCtl(c: Ctl) {
+            when (c) {
+                is Ctl.Choose -> {
+                    moveTo(c.profileId)
+                    decided = true; confirmed = true; event = null
+                    publish(lastTs, force = true)
+                }
+                is Ctl.Mark -> {
+                    repo.addMark(MarkEntity(profileId = _profileId.value, sessionId = openId, tsMs = c.tsMs, text = c.text))
+                    cmds.send(RawCmd.Mark(c.tsMs, c.text))
+                }
+            }
         }
 
         suspend fun onTick(now: Long) {
@@ -291,10 +381,20 @@ class Pipeline(
                 sub.frames.onReceiveCatching { r ->
                     val f = r.getOrNull()
                     if (f == null) { open = false; return@onReceiveCatching }
+                    // select prefers the first ready clause, and frames are nearly always ready: take owner input here too
+                    while (true) onCtl(ctl.tryReceive().getOrNull() ?: break)
+                    if (armTs == null || (openId == null && f.timestamp - lastTs > REARM_GAP_MS)) arm(f.timestamp)
                     frames++; lastTs = f.timestamp
                     val decoded = decoder.decode(f)
                     if (decoded.isNotEmpty()) latest.putAll(decoded)
-                    feedDerived(f, decoded, latest, metrics)
+                    decoded["odo_km"]?.takeIf { it > 0 }?.let { seenOdo = it }
+                    decoded["charge_counter"]?.takeIf { it > 0 }?.let { seenCharge = it }
+                    if (!decided && (seenOdo != null || seenCharge != null)) {
+                        val first = firstEvidenceTs ?: f.timestamp.also { firstEvidenceTs = it }
+                        if ((seenOdo != null && seenCharge != null) || f.timestamp - first >= EVIDENCE_WAIT_MS) decide(f.timestamp)
+                    }
+                    if (confirmed && f.timestamp - lastSeenSave >= LAST_SEEN_EVERY_MS) saveLastSeen(f.timestamp)
+                    feedDerived(f, decoded, latest, metrics, confirmed)
                     feedDrive(f, decoded, latest, drive, load)
                     val state = tracker.onFrame(f, decoded)
                     power = state.power
@@ -304,7 +404,7 @@ class Pipeline(
                         val charging = power in CHARGING_STATES
                         if (f.timestamp - lastCellsTs >= if (charging) CELLS_CHARGING_MS else CELLS_OTHER_MS) {
                             storedCells = cells; lastCellsTs = f.timestamp
-                            repo.addCellSnapshot(CellSnapshotEntity(profileId, f.timestamp, CellBlob.pack(cells.voltages), charging))
+                            repo.addCellSnapshot(CellSnapshotEntity(_profileId.value, f.timestamp, CellBlob.pack(cells.voltages), charging))
                         }
                     }
                     val d = drive
@@ -316,27 +416,30 @@ class Pipeline(
                     val id = openId
                     if (id != null && f.timestamp - lastSample >= SAMPLE_EVERY_MS) {
                         lastSample = f.timestamp
-                        repo.addSample(sampleOf(id, f.timestamp, latest))
+                        repo.addSample(sampleOf(id, f.timestamp, latest, confirmed))
                     }
                     publish(f.timestamp)
                 }
                 ticks.onReceive { now -> if (lastTs != 0L && !replayMode) onTick(now) }
+                ctl.onReceive { onCtl(it) }
             }
         }
         apply(detector.finish(lastTs))
+        saveLastSeen(lastTs)
         publish(lastTs, force = true)
     }
 
-    private fun feedDerived(f: CanFrame, decoded: Map<String, Double>, latest: Map<String, Double>, metrics: ChargeMetrics?) {
+    private fun feedDerived(f: CanFrame, decoded: Map<String, Double>, latest: Map<String, Double>, metrics: ChargeMetrics?,
+                            socOn: Boolean) {
         if (f.id == 0x550) {
             val a = decoded["pack_a"] ?: return
-            soc.onCurrent(f.timestamp, a.toFloat())
+            if (socOn) soc.onCurrent(f.timestamp, a.toFloat())
             val v = latest["pack_v"] ?: return
             metrics?.onSample(f.timestamp, v, a, latest["energy_kwh"], latest["soc_bms"])
         } else if (f.id == 0x530) {
             val mx = decoded["cell_max_mv"] ?: return
             val mn = decoded["cell_min_mv"] ?: return
-            soc.onCellExtremes(f.timestamp, mx.toInt(), mn.toInt(), (latest["pack_a"] ?: 0.0).toFloat())
+            if (socOn) soc.onCellExtremes(f.timestamp, mx.toInt(), mn.toInt(), (latest["pack_a"] ?: 0.0).toFloat())
         }
     }
 
@@ -351,9 +454,9 @@ class Pipeline(
         }
     }
 
-    private fun sampleOf(sessionId: Long, ts: Long, v: Map<String, Double>) = SampleEntity(
+    private fun sampleOf(sessionId: Long, ts: Long, v: Map<String, Double>, socOn: Boolean) = SampleEntity(
         sessionId = sessionId, tsMs = ts, packV = v["pack_v"], packA = v["pack_a"], socBms = v["soc_bms"],
-        socApp = soc.socPercent()?.toDouble(), insulationKOhm = v["insulation_kohm"], tempAvg = v["temp_avg"],
+        socApp = if (socOn) soc.socPercent()?.toDouble() else null, insulationKOhm = v["insulation_kohm"], tempAvg = v["temp_avg"],
         tempMin = v["temp_min"], tempMax = v["temp_max"], cellMinMv = v["cell_min_mv"], cellMaxMv = v["cell_max_mv"],
         energyKwh = v["energy_kwh"],
     )
@@ -380,5 +483,10 @@ class Pipeline(
         const val CELLS_OTHER_MS = 10_000L
         val CHARGING_STATES = setOf(PowerState.CHARGING_AC, PowerState.CHARGING_DC, PowerState.CHARGE_COMPLETE)
         const val DRIVE_SAVE_EVERY_MS = 60_000L
+        /** Frames back after this long with no session open: maybe another van (the adapter moved), recognise again. */
+        const val REARM_GAP_MS = 120_000L
+        /** After the first odometer or counter value, wait this long for the other one before deciding. */
+        const val EVIDENCE_WAIT_MS = 3_000L
+        const val LAST_SEEN_EVERY_MS = 60_000L
     }
 }
