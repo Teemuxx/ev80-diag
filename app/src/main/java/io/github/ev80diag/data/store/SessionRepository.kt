@@ -3,6 +3,8 @@ package io.github.ev80diag.data.store
 import io.github.ev80diag.profile.VanPrint
 import io.github.ev80diag.session.SessionOutcome
 import io.github.ev80diag.session.SessionType
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** What the pipeline needs from storage; the Room version is [RoomSessionRepository], tests use a fake. */
 interface SessionRepository {
@@ -63,8 +65,11 @@ class RoomSessionRepository(private val db: Ev80Database) : SessionRepository {
 
     override suspend fun addMark(m: MarkEntity) { db.marks().insert(m) }
 
-    /** The first van, created on first start. */
-    suspend fun ensureDefaultProfile(name: String): ProfileEntity =
+    /** The first van, created on first start (app start, service and Connect may ask at the same time). */
+    suspend fun ensureDefaultProfile(name: String): ProfileEntity = createLock.withLock {
         db.profiles().first() ?: ProfileEntity(name = name, createdMs = System.currentTimeMillis())
             .let { it.copy(id = db.profiles().insert(it)) }
+    }
+
+    private companion object { val createLock = Mutex() }
 }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.ev80diag.data.store.Ev80Database
 import io.github.ev80diag.data.store.SampleEntity
 import io.github.ev80diag.data.store.SessionEntity
+import io.github.ev80diag.profile.ActiveProfile
 import io.github.ev80diag.pipeline.RecorderState
 import io.github.ev80diag.service.Recorder
 import io.github.ev80diag.session.SessionType
@@ -38,7 +39,7 @@ class ChargingViewModel(app: Application) : AndroidViewModel(app) {
     private val activeId = Recorder.state.map { s -> s.session?.takeIf { it.type != SessionType.DRIVE }?.id }.distinctUntilChanged()
 
     /** The running charge/attempt, or else the one recorded last (by id: a replayed old log is older by start time). */
-    private val shown = combine(activeId, db.sessions().all()) { id, sessions ->
+    private val shown = combine(activeId, ActiveProfile.sessions(app)) { id, sessions ->
         (id?.let { a -> sessions.firstOrNull { it.id == a } } ?: sessions.filter { it.type.startsWith("CHARGE") }.maxByOrNull { it.id }) to (id != null)
     }.distinctUntilChanged()
 

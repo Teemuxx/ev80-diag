@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.ev80diag.data.store.Ev80Database
 import io.github.ev80diag.data.store.SessionEntity
+import io.github.ev80diag.profile.ActiveProfile
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,9 +18,9 @@ import kotlinx.coroutines.withContext
 
 class ExportDebugViewModel(app: Application) : AndroidViewModel(app) {
     private val db = Ev80Database.get(app)
-    val profileName: StateFlow<String?> = db.profiles().all().map { it.firstOrNull()?.name }
+    val profileName: StateFlow<String?> = ActiveProfile.flow(app).map { it?.name }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-    val sessions: StateFlow<List<SessionEntity>> = db.sessions().all().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val sessions: StateFlow<List<SessionEntity>> = ActiveProfile.sessions(app).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _storage = MutableStateFlow(0L)
     val storageBytes: StateFlow<Long> = _storage

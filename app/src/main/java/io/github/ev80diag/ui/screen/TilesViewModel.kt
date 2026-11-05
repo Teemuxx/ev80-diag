@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.ev80diag.calc.SocTracker
+import io.github.ev80diag.data.PrefsKeyValue
+import io.github.ev80diag.profile.ActiveProfile
 import io.github.ev80diag.data.store.DriveTotals
 import io.github.ev80diag.data.store.Ev80Database
 import io.github.ev80diag.service.Recorder
@@ -32,23 +34,22 @@ import kotlinx.coroutines.launch
 class TilesViewModel(app: Application) : AndroidViewModel(app) {
     private val db = Ev80Database.get(app)
     private val settings = AppSettings(app)
-    private val store = TileLayoutStore(app.getSharedPreferences("ev80_tiles", Context.MODE_PRIVATE))
+    private val store = TileLayoutStore(PrefsKeyValue(app.getSharedPreferences("ev80_tiles", Context.MODE_PRIVATE)))
     private val none = DriveTotals(0.0, 0.0)
 
-    private val profileId: StateFlow<Long?> = db.profiles().all().map { it.firstOrNull()?.id }
+    private val profileId: StateFlow<Long?> = ActiveProfile.flow(app).map { it?.id }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _layout = MutableStateFlow(TileLayout.DEFAULT)
     val layout: StateFlow<List<TileSpec>> = _layout
 
     init {
-        viewModelScope.launch { _layout.value = store.load(profileId.filterNotNull().first()) }
+        _layout.value = store.load()
     }
 
     fun set(slot: Int, spec: TileSpec) {
-        val id = profileId.value ?: return
         _layout.value = _layout.value.toMutableList().also { it[slot] = spec }
-        store.save(id, _layout.value)
+        store.save(_layout.value)
     }
 
     private fun totals(from: Long, to: Long): Flow<DriveTotals> =

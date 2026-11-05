@@ -55,6 +55,10 @@ class AppSettings(private val prefs: SharedPreferences) {
     var lowCellMv: Int
         get() = prefs.getInt("low_cell_mv", LOW_CELL_MV.default)
         set(v) = prefs.edit().putInt("low_cell_mv", v).apply()
+    /** The van screens show and recording starts on; -1 = none chosen yet (the first van). */
+    var activeProfileId: Long
+        get() = prefs.getLong("active_profile_id", -1L)
+        set(v) = prefs.edit().putLong("active_profile_id", v).apply()
     var keepScreenOn: Boolean
         get() = prefs.getBoolean("keep_screen_on", true)
         set(v) = prefs.edit().putBoolean("keep_screen_on", v).apply()

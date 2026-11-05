@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.ContextCompat
+import io.github.ev80diag.pipeline.LinkStatus
 import io.github.ev80diag.pipeline.RecorderState
+import io.github.ev80diag.profile.ActiveProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -22,6 +24,8 @@ object Recorder {
     const val ACTION_REPLAY = "io.github.ev80diag.REPLAY"
     const val ACTION_STOP = "io.github.ev80diag.STOP"
     const val ACTION_MARK = "io.github.ev80diag.MARK"
+    const val ACTION_CHOOSE_PROFILE = "io.github.ev80diag.CHOOSE_PROFILE"
+    const val EXTRA_PROFILE_ID = "profile_id"
     /** Reconnect to the last adapter (automatic mode at app start); ignored while recording. */
     const val ACTION_RESUME = "io.github.ev80diag.RESUME"
     const val EXTRA_ADDRESS = "address"
@@ -38,5 +42,10 @@ object Recorder {
     fun replay(ctx: Context, uri: Uri, speed: Double = 10.0) = send(ctx, ACTION_REPLAY) { putExtra(EXTRA_URI, uri.toString()); putExtra(EXTRA_SPEED, speed) }
     fun resume(ctx: Context) = send(ctx, ACTION_RESUME)
     fun stop(ctx: Context) = ctx.startService(Intent(ctx, RecorderService::class.java).setAction(ACTION_STOP))
+    /** Another van: while recording, the pipeline moves this connection's data to it; otherwise it just becomes active. */
+    fun chooseProfile(ctx: Context, id: Long) {
+        if (state.value.link == LinkStatus.DISCONNECTED || state.value.link == LinkStatus.REFUSED) ActiveProfile.set(ctx, id)
+        else ctx.startService(Intent(ctx, RecorderService::class.java).setAction(ACTION_CHOOSE_PROFILE).putExtra(EXTRA_PROFILE_ID, id))
+    }
     fun mark(ctx: Context, text: String) = ctx.startService(Intent(ctx, RecorderService::class.java).setAction(ACTION_MARK).putExtra(EXTRA_TEXT, text))
 }

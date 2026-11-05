@@ -37,4 +37,15 @@ class TileLayoutTest {
     @Test fun periodWithoutTimes_fallsBack() {
         assertEquals(TileLayout.DEFAULT[0], TileLayout.decode("CONS_PERIOD:x:y")[0])
     }
+
+    /** 0.3 kept one layout per van (tiles_<id>); 0.4 shares one: the first van's old layout carries over. */
+    @Test fun store_sharedFallsBackToOldPerVanKey() {
+        val kv = io.github.ev80diag.data.MapKeyValue()
+        kv.putString("tiles_3", TileLayout.encode(TileLayout.DEFAULT.reversed()))
+        kv.putString("tiles_1", TileLayout.encode(TileLayout.DEFAULT.drop(1) + TileLayout.DEFAULT.first()))
+        val store = TileLayoutStore(kv)
+        assertEquals(TileLayout.DEFAULT.drop(1) + TileLayout.DEFAULT.first(), store.load())
+        store.save(TileLayout.DEFAULT)
+        assertEquals(TileLayout.DEFAULT, store.load())
+    }
 }

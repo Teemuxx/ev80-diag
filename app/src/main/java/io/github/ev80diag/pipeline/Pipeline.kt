@@ -329,6 +329,7 @@ class Pipeline(
             vans = if (recognize) repo.vans() else emptyList()
             decided = vans.size <= 1
             confirmed = decided
+            if (confirmed) soc.onProfile(_profileId.value)
             publish(ts, force = true)
         }
 
@@ -339,6 +340,7 @@ class Pipeline(
                     val from = _profileId.value
                     if (r.id != from) { moveTo(r.id); event = ProfileEvent.Switched(from, r.id, r.by, ++eventSeq) }
                     confirmed = true
+                    soc.onProfile(r.id)
                 }
                 is Recognition.Unclear -> event = ProfileEvent.Ask(r.candidates, ++eventSeq)
                 Recognition.NoEvidence -> decided = false
@@ -358,6 +360,7 @@ class Pipeline(
                 is Ctl.Choose -> {
                     moveTo(c.profileId)
                     decided = true; confirmed = true; event = null
+                    soc.onProfile(c.profileId)
                     publish(lastTs, force = true)
                 }
                 is Ctl.Mark -> {

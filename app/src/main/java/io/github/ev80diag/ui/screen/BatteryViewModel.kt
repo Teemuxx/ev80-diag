@@ -11,6 +11,7 @@ import io.github.ev80diag.battery.TimeWindow
 import io.github.ev80diag.data.store.CellBlob
 import io.github.ev80diag.data.store.Ev80Database
 import io.github.ev80diag.data.store.SessionEntity
+import io.github.ev80diag.profile.ActiveProfile
 import io.github.ev80diag.settings.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,7 +44,7 @@ class BatteryViewModel(app: Application) : AndroidViewModel(app) {
     private val db = Ev80Database.get(app)
     val spreadWarnMv = AppSettings(app).spreadWarnMv
 
-    private val profileId: StateFlow<Long?> = db.profiles().all().map { it.firstOrNull()?.id }
+    private val profileId: StateFlow<Long?> = ActiveProfile.flow(app).map { it?.id }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val window = MutableStateFlow(TimeWindow.last(TimeWindow.QUICK[1], System.currentTimeMillis()))
@@ -51,7 +52,7 @@ class BatteryViewModel(app: Application) : AndroidViewModel(app) {
     private val pickedMs = MutableStateFlow<Long?>(null)
     private val extra = MutableStateFlow<Set<Int>>(emptySet())
 
-    val sessions: StateFlow<List<SessionEntity>> = db.sessions().all().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val sessions: StateFlow<List<SessionEntity>> = ActiveProfile.sessions(app).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
         // a window that ends "now" moves along

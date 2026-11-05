@@ -26,6 +26,7 @@ import io.github.ev80diag.data.store.RoomSessionRepository
 import io.github.ev80diag.pipeline.LinkStatus
 import io.github.ev80diag.pipeline.Pipeline
 import io.github.ev80diag.pipeline.SocFeed
+import io.github.ev80diag.profile.ActiveProfile
 import io.github.ev80diag.pipeline.SourceResult
 import io.github.ev80diag.session.PowerState
 import io.github.ev80diag.session.SessionType
@@ -74,6 +75,11 @@ class RecorderService : Service() {
         when (intent?.action) {     // these two come by startService, never need the foreground promotion
             Recorder.ACTION_STOP -> { stopRecording(); stopSelf(); return START_NOT_STICKY }
             Recorder.ACTION_MARK -> { pipeline?.mark(intent.getStringExtra(Recorder.EXTRA_TEXT).orEmpty()); return START_STICKY }
+            Recorder.ACTION_CHOOSE_PROFILE -> {
+                val id = intent.getLongExtra(Recorder.EXTRA_PROFILE_ID, -1L)
+                if (id > 0) pipeline?.chooseProfile(id) ?: ActiveProfile.set(this, id)
+                return START_STICKY
+            }
         }
         if (!startInForeground()) { stopSelf(); return START_NOT_STICKY }
         when (intent?.action) {
@@ -119,12 +125,14 @@ class RecorderService : Service() {
             previous?.cancelAndJoin()       // the old pipeline ends its session and releases the adapter first
             val db = Ev80Database.get(this@RecorderService)
             val repo = RoomSessionRepository(db)
-            val profile = repo.ensureDefaultProfile(getString(R.string.default_van_name))
+            val profile = ActiveProfile.current(this@RecorderService)
             repo.closeOrphans().let { if (it > 0) DebugLog.log("closed $it session(s) cut off by an app kill") }
             cleanupOldDriveLogs(db)
             val p = Pipeline(File(filesDir, "sessions"), { settings.fullCanLogging }, repo, profile.id,
-                if (replay) SocFeed.Fresh() else SocFeed.Tracker, replayMode = replay)
+                if (replay) SocFeed.Fresh() else SocFeed.Tracker, replayMode = replay, recognize = !replay)
             pipeline = p
+            // recognition or the owner picked another van: the screens follow
+            val vanWatch = launch { if (!replay) p.profileId.collect { id -> ActiveProfile.set(this@RecorderService, id) } }
             var attempt = 0
             val runJob = launch {
                 p.run { last ->
@@ -156,7 +164,7 @@ class RecorderService : Service() {
                 }
             }
             runJob.join()
-            watch.cancel(); sleepWatch.cancel()
+            watch.cancel(); sleepWatch.cancel(); vanWatch.cancel()
             onState(p.state.value)          // the final state (DISCONNECTED or REFUSED)
             stopSelf()
         }

@@ -2,6 +2,7 @@ package io.github.ev80diag
 
 import android.app.Application
 import io.github.ev80diag.calc.SocTracker
+import io.github.ev80diag.profile.ActiveProfile
 
 class EV80App : Application() {
     override fun onCreate() {
@@ -9,5 +10,6 @@ class EV80App : Application() {
         DebugLog.init(this)
         CrashLogger.install(this)
         SocTracker.init(this)
+        ActiveProfile.init(this)
     }
 }

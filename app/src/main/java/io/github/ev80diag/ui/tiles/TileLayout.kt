@@ -1,6 +1,6 @@
 package io.github.ev80diag.ui.tiles
 
-import android.content.SharedPreferences
+import io.github.ev80diag.data.KeyValue
 
 /** The 8 tiles, stored as "KIND" or "CONS_PERIOD:from:to", joined with ';'. Broken slots fall back to [DEFAULT]. */
 object TileLayout {
@@ -29,8 +29,13 @@ object TileLayout {
     }
 }
 
-/** Per-profile tile layout in SharedPreferences (key `tiles_<profileId>`). */
-class TileLayoutStore(private val prefs: SharedPreferences) {
-    fun load(profileId: Long): List<TileSpec> = TileLayout.decode(prefs.getString("tiles_$profileId", null))
-    fun save(profileId: Long, tiles: List<TileSpec>) = prefs.edit().putString("tiles_$profileId", TileLayout.encode(tiles)).apply()
+/** One tile layout for all vans (key `tiles`). 0.3 stored one per van (`tiles_<profileId>`): the first van's carries over. */
+class TileLayoutStore(private val kv: KeyValue) {
+    fun load(): List<TileSpec> = TileLayout.decode(kv.getString(KEY) ?: legacy())
+    fun save(tiles: List<TileSpec>) = kv.putString(KEY, TileLayout.encode(tiles))
+
+    private fun legacy(): String? = kv.keys().mapNotNull { k -> k.removePrefix("tiles_").toLongOrNull()?.takeIf { k.startsWith("tiles_") } }
+        .minOrNull()?.let { kv.getString("tiles_$it") }
+
+    private companion object { const val KEY = "tiles" }
 }

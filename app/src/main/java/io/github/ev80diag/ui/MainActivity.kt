@@ -11,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import io.github.ev80diag.data.store.Ev80Database
+import io.github.ev80diag.profile.ActiveProfile
 import io.github.ev80diag.pipeline.LinkStatus
 import io.github.ev80diag.service.Recorder
 import androidx.core.content.IntentCompat
@@ -42,8 +42,8 @@ class MainActivity : AppCompatActivity() {
                     if (settings.keepScreenOn && state.link == LinkStatus.CONNECTED) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 }
-                val profiles by Ev80Database.get(this@MainActivity).profiles().all().collectAsState(emptyList())
-                AppNavGraph(vanName = profiles.firstOrNull()?.name ?: getString(io.github.ev80diag.R.string.default_van_name))
+                val van by ActiveProfile.flow(this@MainActivity).collectAsState()
+                AppNavGraph(vanName = van?.name ?: getString(io.github.ev80diag.R.string.default_van_name))
             }
         }
     }

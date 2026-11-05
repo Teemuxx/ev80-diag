@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
 import io.github.ev80diag.data.store.Ev80Database
+import io.github.ev80diag.profile.ActiveProfile
 import io.github.ev80diag.data.store.SampleEntity
 import java.io.File
 import java.text.SimpleDateFormat
@@ -28,7 +29,7 @@ object SessionExporter {
         val s = db.sessions().byId(sessionId) ?: return@withContext null
         // older shares go after an hour; a receiving app may still be uploading the last one
         val dir = File(ctx.cacheDir, "share").apply { mkdirs(); listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 3_600_000 }?.forEach { it.delete() } }
-        val profile = db.profiles().first()?.name ?: "EV80"
+        val profile = db.profiles().byId(s.profileId)?.name ?: "EV80"
         val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date(s.startMs))
         val base = "ev80_${profile.replace(Regex("[^A-Za-z0-9_-]"), "_")}_${stamp}_${s.type.lowercase(Locale.US)}"
         val samples = db.samples().listForSession(sessionId)
@@ -47,10 +48,10 @@ object SessionExporter {
         }
     }
 
-    /** Everything recorded for the van profile as one zip ([ProfileExport]), or null when nothing is recorded yet. */
+    /** Everything recorded for the active van as one zip ([ProfileExport]), or null when nothing is recorded yet. */
     suspend fun buildAll(ctx: Context): File? = withContext(Dispatchers.IO) {
         val db = Ev80Database.get(ctx)
-        val profile = db.profiles().first() ?: return@withContext null
+        val profile = ActiveProfile.current(ctx)
         val sessions = db.sessions().listForProfile(profile.id)
         if (sessions.isEmpty()) return@withContext null
         // each bundle moves to its own folder: two sessions of the same minute share a bundle name

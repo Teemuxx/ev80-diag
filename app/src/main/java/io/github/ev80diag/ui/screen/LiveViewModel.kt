@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.ev80diag.calc.SocTracker
+import io.github.ev80diag.profile.ActiveProfile
 import io.github.ev80diag.data.store.Ev80Database
 import io.github.ev80diag.service.Recorder
 import io.github.ev80diag.settings.AppSettings
@@ -22,7 +23,7 @@ class LiveViewModel(app: Application) : AndroidViewModel(app) {
     private val db = Ev80Database.get(app)
     private val settings = AppSettings(app)
 
-    val profileId: StateFlow<Long?> = db.profiles().all().map { it.firstOrNull()?.id }
+    val profileId: StateFlow<Long?> = ActiveProfile.flow(app).map { it?.id }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** Average over all stored drives, once there are at least 5 km of them (the range's fallback). */
