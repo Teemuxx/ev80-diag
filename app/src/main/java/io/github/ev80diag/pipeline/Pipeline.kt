@@ -109,7 +109,7 @@ class Pipeline(
     private val ctl = Channel<Ctl>(Channel.UNLIMITED)
 
     /** Saves a timestamped note (database, and the open session's marks file when there is a raw log). */
-    fun mark(text: String) { ctl.trySend(Ctl.Mark(clock(), text)) }
+    fun mark(text: String) { ctl.trySend(Ctl.Mark(clock(), text.replace(Regex("\\s*[\\r\\n]+\\s*"), " ").trim())) }
 
     /** The owner's answer to [ProfileEvent.Ask], an Undo of [ProfileEvent.Switched], or a tap on another van. */
     fun chooseProfile(id: Long) { ctl.trySend(Ctl.Choose(id)) }
@@ -140,6 +140,7 @@ class Pipeline(
                 link = LinkStatus.CONNECTING
                 lastRunConnected = false
                 publishLink()
+                bus.onFrame(RUN_START)      // in-band, so the decoder knows exactly where this connection's frames begin
                 last = try {
                     src.run(bus)
                     SourceResult.ENDED
@@ -155,6 +156,8 @@ class Pipeline(
                     link = LinkStatus.LOST
                     publishLink()
                     SourceResult.FAILED
+                } finally {
+                    bus.onFrame(RUN_END)
                 }
             }
         } finally {
@@ -195,7 +198,7 @@ class Pipeline(
                 select<Unit> {
                     if (framesOpen) sub.frames.onReceiveCatching { r ->
                         val f = r.getOrNull()
-                        if (f == null) framesOpen = false else { lastTs = f.timestamp; preRoll.add(f); writer?.write(f) }
+                        if (f == null) framesOpen = false else if (f.id >= 0) { lastTs = f.timestamp; preRoll.add(f); writer?.write(f) }
                         closeIfDue()
                     }
                     if (cmdsOpen) cmds.onReceiveCatching { r ->
@@ -246,8 +249,13 @@ class Pipeline(
         var storedCells: Any? = null
         var lastCellsTs = 0L
 
-        // van recognition, per connection (re-armed when frames return after a gap with no session open)
+        // van recognition, per connection: each source run, and frames back after a long gap with no session open
+        var newRun = false
+        var live = false                        // frames of a running connection are coming in
         var armTs: Long? = null
+        var heldSession: Long? = null           // a session of the previous connection, still open across the reconnect
+        var heldLastTs = 0L
+        val sessionsThisArm = ArrayList<Long>()
         var vans: List<VanPrint> = emptyList()
         var decided = false
         var confirmed = false
@@ -262,6 +270,7 @@ class Pipeline(
                 is SessionEvent.Started -> {
                     val id = repo.startSession(_profileId.value, e.type, e.startMs, adapterKind, adapterName)
                     openId = id; openType = e.type; openStart = e.startMs
+                    sessionsThisArm += id
                     framesAtStart = frames; droppedAtStart = sub.dropped.get() + raw.dropped.get()
                     metrics = if (e.type != SessionType.DRIVE) ChargeMetrics() else null
                     drive = if (e.type == SessionType.DRIVE) DriveMetrics() else null
@@ -315,16 +324,24 @@ class Pipeline(
             )
         }
 
+        /** Records into [to] from now; data of the live connection so far goes along (never a replay's, never an older connection's). */
         suspend fun moveTo(to: Long) {
             val from = _profileId.value
             if (to == from) return
-            repo.moveConnectionData(openId, from, to, armTs ?: Long.MAX_VALUE)
+            val since = armTs
+            if (live && since != null && recognize) {
+                // a session the previous connection left open belongs to the previous van: end it there
+                if (heldSession != null && openId == heldSession) apply(detector.finish(heldLastTs))
+                repo.moveConnectionData(sessionsThisArm.toList(), from, to, since)
+            }
             _profileId.value = to
             DebugLog.log("van $from -> $to")
         }
 
         suspend fun arm(ts: Long) {
             armTs = ts; firstEvidenceTs = null; seenOdo = null; seenCharge = null; lastSeenSave = 0L
+            event = null
+            heldSession = openId; heldLastTs = lastTs; sessionsThisArm.clear()
             vans = if (recognize) repo.vans() else emptyList()
             decided = vans.size <= 1
             confirmed = decided
@@ -337,7 +354,11 @@ class Pipeline(
             when (val r = VanRecognizer.recognize(vans, seenOdo, seenCharge)) {
                 is Recognition.Match -> {
                     val from = _profileId.value
-                    if (r.id != from) { moveTo(r.id); event = ProfileEvent.Switched(from, r.id, r.by, EVENT_SEQ.incrementAndGet()) }
+                    if (r.id != from) {
+                        moveTo(r.id)
+                        event = ProfileEvent.Switched(from, r.id, r.by, EVENT_SEQ.incrementAndGet())
+                        lastSeenSave = now      // first fingerprint save a minute later: an Undo before then leaves no trace
+                    }
                     confirmed = true
                     soc.onProfile(r.id)
                 }
@@ -357,9 +378,13 @@ class Pipeline(
         suspend fun onCtl(c: Ctl) {
             when (c) {
                 is Ctl.Choose -> {
+                    if (!recognize) return      // a replay records into the van it started on
+                    val wrong = _profileId.value
+                    val undo = (event as? ProfileEvent.Switched)?.let { it.to == wrong && it.from == c.profileId } == true
                     moveTo(c.profileId)
+                    if (undo) vans.firstOrNull { it.id == wrong }?.let { repo.restoreFingerprint(it) }
                     decided = true; confirmed = true; event = null
-                    soc.onProfile(c.profileId)
+                    soc.onProfile(c.profileId, revertCurrent = undo)
                     publish(lastTs, force = true)
                 }
                 is Ctl.Mark -> {
@@ -385,7 +410,9 @@ class Pipeline(
                     if (f == null) { open = false; return@onReceiveCatching }
                     // select prefers the first ready clause, and frames are nearly always ready: take owner input here too
                     while (true) onCtl(ctl.tryReceive().getOrNull() ?: break)
-                    if (armTs == null || (openId == null && f.timestamp - lastTs > REARM_GAP_MS)) arm(f.timestamp)
+                    if (f.id < 0) { if (f === RUN_START) newRun = true else live = false; return@onReceiveCatching }
+                    if (newRun || armTs == null || (openId == null && f.timestamp - lastTs > REARM_GAP_MS)) arm(f.timestamp)
+                    newRun = false; live = true
                     frames++; lastTs = f.timestamp
                     val decoded = decoder.decode(f)
                     if (decoded.isNotEmpty()) latest.putAll(decoded)
@@ -469,7 +496,7 @@ class Pipeline(
     }
 
     private fun publishFinal() {
-        _state.value = _state.value.copy(link = link, session = null, charge = null, framesPerSec = 0.0)
+        _state.value = _state.value.copy(link = link, session = null, charge = null, framesPerSec = 0.0, profileEvent = null)
     }
 
     private companion object {
@@ -491,6 +518,9 @@ class Pipeline(
         const val EVIDENCE_WAIT_MS = 3_000L
         const val LAST_SEEN_EVERY_MS = 60_000L
         /** App-wide, so the UI can tell a new event of a later connection from one it already showed. */
-        val EVENT_SEQ = AtomicInteger()
+        val EVENT_SEQ = AtomicInteger((System.currentTimeMillis() / 1000 % 1_000_000_000).toInt())   // not 0 again after a restart
+        /** Markers the source loop puts on the bus around each connection (never written to the raw log). */
+        val RUN_START = CanFrame(-1, ByteArray(0), 0)
+        val RUN_END = CanFrame(-2, ByteArray(0), 0)
     }
 }

@@ -44,7 +44,7 @@ fun MarkDialog(onDismiss: () -> Unit) {
         title = { Text(stringResource(R.string.mark_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(text, { text = it }, placeholder = { Text(stringResource(R.string.mark_hint)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(text, { text = it }, placeholder = { Text(stringResource(R.string.mark_hint)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 if (recent.isNotEmpty()) {
                     Text(stringResource(R.string.mark_recent), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     recent.forEach { m -> Text("${time.format(Date(m.tsMs))}  ${m.text}", style = MaterialTheme.typography.bodySmall) }

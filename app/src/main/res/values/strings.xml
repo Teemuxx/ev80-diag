@@ -313,4 +313,5 @@
     <string name="mark_title">Mark a moment</string>
     <string name="mark_hint">What happened? (e.g. range dropped)</string>
     <string name="mark_recent">Recent marks</string>
+    <string name="van_switch_confirm">Record this connection as %1$s? What was recorded since connecting moves to %1$s.</string>
 </resources>

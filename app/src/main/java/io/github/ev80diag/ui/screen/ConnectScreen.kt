@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -146,7 +147,18 @@ fun ConnectScreen(modifier: Modifier = Modifier, onEditVan: (Long) -> Unit = {},
 
     Column(modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.vans_title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-        vans.forEach { v -> VanCard(v, selected = v.id == activeVan?.id, onSelect = { vm.select(v.id) }, onEdit = { onEditVan(v.id) }) }
+        // while connected, another van takes this connection's data along: ask first (a look at its history is not meant)
+        var confirmVan by remember { mutableStateOf<ProfileEntity?>(null) }
+        vans.forEach { v ->
+            VanCard(v, selected = v.id == activeVan?.id, onEdit = { onEditVan(v.id) },
+                onSelect = { if (v.id != activeVan?.id) { if (connected) confirmVan = v else vm.select(v.id) } })
+        }
+        confirmVan?.let { v ->
+            AlertDialog(onDismissRequest = { confirmVan = null },
+                text = { Text(stringResource(R.string.van_switch_confirm, v.name)) },
+                confirmButton = { TextButton({ vm.select(v.id); confirmVan = null }) { Text(stringResource(R.string.btn_ok)) } },
+                dismissButton = { TextButton({ confirmVan = null }) { Text(stringResource(android.R.string.cancel)) } })
+        }
         TextButton({ onEditVan(0L) }) { Text(stringResource(R.string.van_add)) }
 
         Text(stringResource(R.string.connect_adapter), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)

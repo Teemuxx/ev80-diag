@@ -11,8 +11,11 @@ interface SocFeed {
     fun onCellExtremes(tsMs: Long, maxMv: Int, minMv: Int, currentA: Float)
     /** null when unknown, or stale (data missed since the last anchor, e.g. driven without the app). */
     fun socPercent(): Float?
-    /** The recorded van is settled as [profileId]; input that follows belongs to its estimate. */
-    fun onProfile(profileId: Long) {}
+    /**
+     * The recorded van is settled as [profileId]; input that follows belongs to its estimate. [revertCurrent]: the van
+     * recorded until now was wrong (Undo), so its estimate goes back to how it was before.
+     */
+    fun onProfile(profileId: Long, revertCurrent: Boolean = false) {}
 
     object None : SocFeed {
         override fun onCurrent(tsMs: Long, currentA: Float) {}
@@ -25,7 +28,7 @@ interface SocFeed {
         override fun onCellExtremes(tsMs: Long, maxMv: Int, minMv: Int, currentA: Float) =
             SocTracker.onCellExtremes(tsMs, maxMv, minMv, currentA)
         override fun socPercent(): Float? = shown(SocTracker.snapshot.value)
-        override fun onProfile(profileId: Long) = SocTracker.activate(profileId)
+        override fun onProfile(profileId: Long, revertCurrent: Boolean) = SocTracker.activate(profileId, revertCurrent)
     }
 
     /** An in-memory estimate for replays: an old log must not overwrite the van's saved SOC state. */

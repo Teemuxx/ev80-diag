@@ -42,20 +42,23 @@ class PipelineReplayTest {
         override suspend fun addCellSnapshot(s: io.github.ev80diag.data.store.CellSnapshotEntity) { snapshots.add(s) }
 
         var vans = listOf(io.github.ev80diag.profile.VanPrint(1, null, null))
-        data class Move(val sessionId: Long?, val from: Long, val to: Long, val sinceMs: Long)
+        data class Move(val sessionIds: List<Long>, val from: Long, val to: Long, val sinceMs: Long)
         val moves = ArrayList<Move>()
         val lastSeen = HashMap<Long, Pair<Double?, Double?>>()
         val marks = ArrayList<io.github.ev80diag.data.store.MarkEntity>()
         override suspend fun vans() = vans
-        override suspend fun moveConnectionData(sessionId: Long?, from: Long, to: Long, sinceMs: Long) {
-            moves.add(Move(sessionId, from, to, sinceMs))
-            sessionId?.let { sessions[(it - 1).toInt()].profileId = to }
+        override suspend fun moveConnectionData(sessionIds: List<Long>, from: Long, to: Long, sinceMs: Long) {
+            moves.add(Move(sessionIds, from, to, sinceMs))
+            sessionIds.forEach { sessions[(it - 1).toInt()].profileId = to }
             snapshots.replaceAll { if (it.profileId == from && it.tsMs >= sinceMs) it.copy(profileId = to) else it }
             marks.replaceAll { if (it.profileId == from && it.tsMs >= sinceMs) it.copy(profileId = to) else it }
         }
         override suspend fun setLastSeen(profileId: Long, odoKm: Double?, chargeKwh: Double?, ms: Long) {
             val old = lastSeen[profileId]
             lastSeen[profileId] = (odoKm ?: old?.first) to (chargeKwh ?: old?.second)
+        }
+        override suspend fun restoreFingerprint(p: io.github.ev80diag.profile.VanPrint) {
+            if (p.lastOdoKm == null && p.lastChargeKwh == null) lastSeen.remove(p.id) else lastSeen[p.id] = p.lastOdoKm to p.lastChargeKwh
         }
         override suspend fun addMark(m: io.github.ev80diag.data.store.MarkEntity) { marks.add(m) }
     }

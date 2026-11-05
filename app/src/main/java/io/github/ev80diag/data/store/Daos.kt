@@ -19,6 +19,8 @@ interface ProfileDao {
     @Query("UPDATE profile SET lastOdoKm = COALESCE(:odoKm, lastOdoKm), lastChargeKwh = COALESCE(:chargeKwh, lastChargeKwh), " +
         "lastSeenMs = :ms WHERE id = :id")
     suspend fun setLastSeen(id: Long, odoKm: Double?, chargeKwh: Double?, ms: Long)
+    @Query("UPDATE profile SET lastOdoKm = :odoKm, lastChargeKwh = :chargeKwh WHERE id = :id")
+    suspend fun setFingerprint(id: Long, odoKm: Double?, chargeKwh: Double?)
     @Query("DELETE FROM profile WHERE id = :id") suspend fun delete(id: Long)
 }
 

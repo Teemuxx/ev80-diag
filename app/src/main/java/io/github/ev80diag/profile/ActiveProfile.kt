@@ -43,8 +43,7 @@ object ActiveProfile {
             .stateIn(scope, SharingStarted.Eagerly, null)
         active = flow
         scope.launch {
-            val first = RoomSessionRepository(db).ensureDefaultProfile(app.getString(R.string.default_van_name))
-            SocTracker.migrateLegacy(first.id)       // 0.3 kept one SOC state: it is the first van's
+            RoomSessionRepository(db).ensureDefaultProfile(app.getString(R.string.default_van_name))
             flow.collect { p -> p?.let { SocTracker.activate(it.id) } }
         }
     }

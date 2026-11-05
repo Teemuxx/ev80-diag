@@ -24,6 +24,7 @@ object SocTracker {
     private var lastSaveTs = 0L
     @Volatile var activeProfileId: Long? = null
         private set
+    private var loadedState = SocState()
 
     @Synchronized
     fun init(context: Context) {
@@ -33,17 +34,27 @@ object SocTracker {
             .getFloat("capacity_ah", defaultCapacityAh)
     }
 
-    /** Moves the single 0.3 state to the first van (once). */
+    /** JVM tests: a fresh tracker on [kv]. */
     @Synchronized
-    fun migrateLegacy(firstProfileId: Long) { store?.migrateLegacy(firstProfileId) }
+    internal fun initForTest(kv: io.github.ev80diag.data.KeyValue) {
+        store = SocStore(kv); activeProfileId = null; lastSaveTs = 0L
+        estimator.restore(SocState()); publish()
+    }
 
-    /** Saves the current van's state and loads [profileId]'s. */
+    /**
+     * Saves the current van's state and loads [profileId]'s. [revertCurrent]: the current van was recorded by mistake
+     * (Undo of a switch), so it keeps the state it had when it was activated. The single 0.3 state goes to the first
+     * van activated (after the update there is only one).
+     */
     @Synchronized
-    fun activate(profileId: Long) {
+    fun activate(profileId: Long, revertCurrent: Boolean = false) {
         if (profileId == activeProfileId) return
-        activeProfileId?.let { store?.save(it, estimator.state) }
+        val s = store
+        activeProfileId?.let { s?.save(it, if (revertCurrent) loadedState else estimator.state) }
+        s?.migrateLegacy(profileId)
         activeProfileId = profileId
-        estimator.restore(store?.load(profileId, defaultCapacityAh) ?: SocState(capacityAh = defaultCapacityAh))
+        loadedState = s?.load(profileId, defaultCapacityAh) ?: SocState(capacityAh = defaultCapacityAh)
+        estimator.restore(loadedState)
         publish()
     }
 

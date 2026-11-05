@@ -3,6 +3,7 @@ package io.github.ev80diag.data.store
 import io.github.ev80diag.profile.VanPrint
 import io.github.ev80diag.session.SessionOutcome
 import io.github.ev80diag.session.SessionType
+import androidx.room.withTransaction
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -16,8 +17,10 @@ interface SessionRepository {
     suspend fun setDriveTotals(id: Long, km: Double, kwh: Double)
     suspend fun addCellSnapshot(s: CellSnapshotEntity)
     suspend fun vans(): List<VanPrint>
-    /** Recognition decided late: the open session, and cell snapshots and marks since [sinceMs], belong to [to]. */
-    suspend fun moveConnectionData(sessionId: Long?, from: Long, to: Long, sinceMs: Long)
+    /** Recognition decided late: the connection's sessions, and cell snapshots and marks since [sinceMs], belong to [to]. */
+    suspend fun moveConnectionData(sessionIds: List<Long>, from: Long, to: Long, sinceMs: Long)
+    /** Puts a van's recognition values back as they were (Undo of a wrong switch). */
+    suspend fun restoreFingerprint(p: VanPrint)
     suspend fun setLastSeen(profileId: Long, odoKm: Double?, chargeKwh: Double?, ms: Long)
     suspend fun addMark(m: MarkEntity)
 }
@@ -54,11 +57,13 @@ class RoomSessionRepository(private val db: Ev80Database) : SessionRepository {
 
     override suspend fun vans() = db.profiles().list().map { VanPrint(it.id, it.lastOdoKm, it.lastChargeKwh) }
 
-    override suspend fun moveConnectionData(sessionId: Long?, from: Long, to: Long, sinceMs: Long) {
-        sessionId?.let { db.sessions().moveToProfile(it, to) }
+    override suspend fun moveConnectionData(sessionIds: List<Long>, from: Long, to: Long, sinceMs: Long) = db.withTransaction {
+        sessionIds.forEach { db.sessions().moveToProfile(it, to) }
         db.cellSnapshots().moveToProfile(from, to, sinceMs)
         db.marks().moveToProfile(from, to, sinceMs)
     }
+
+    override suspend fun restoreFingerprint(p: VanPrint) = db.profiles().setFingerprint(p.id, p.lastOdoKm, p.lastChargeKwh)
 
     override suspend fun setLastSeen(profileId: Long, odoKm: Double?, chargeKwh: Double?, ms: Long) =
         db.profiles().setLastSeen(profileId, odoKm, chargeKwh, ms)

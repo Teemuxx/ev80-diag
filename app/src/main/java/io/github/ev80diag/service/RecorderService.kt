@@ -77,7 +77,7 @@ class RecorderService : Service() {
             Recorder.ACTION_MARK -> { pipeline?.mark(intent.getStringExtra(Recorder.EXTRA_TEXT).orEmpty()); return START_STICKY }
             Recorder.ACTION_CHOOSE_PROFILE -> {
                 val id = intent.getLongExtra(Recorder.EXTRA_PROFILE_ID, -1L)
-                if (id > 0) pipeline?.chooseProfile(id) ?: ActiveProfile.set(this, id)
+                if (id > 0) pipeline.takeIf { !replaying }?.chooseProfile(id) ?: ActiveProfile.set(this, id)
                 return START_STICKY
             }
         }
@@ -118,8 +118,12 @@ class RecorderService : Service() {
 
     // ---- connection ---------------------------------------------------------------------------
 
+    /** A replay records into the active van as it was; choosing a van then only changes the screens. */
+    @Volatile private var replaying = false
+
     private fun start(replay: Boolean = false, source: () -> CanSource?) {
         val previous = job
+        replaying = replay
         acquireWakeLock()
         job = scope.launch {
             previous?.cancelAndJoin()       // the old pipeline ends its session and releases the adapter first
@@ -198,7 +202,7 @@ class RecorderService : Service() {
         val last = Recorder.state.value
         // a refusal stays on screen until the next connect, so the owner sees why nothing happened
         val link = if (last.link == LinkStatus.REFUSED) LinkStatus.REFUSED else LinkStatus.DISCONNECTED
-        Recorder.publish(last.copy(link = link, session = null, charge = null))
+        Recorder.publish(last.copy(link = link, session = null, charge = null, profileEvent = null))
     }
 
     /** Without it the CPU sleeps with the screen off: ticks, flushes and Bluetooth reads would stall. */
