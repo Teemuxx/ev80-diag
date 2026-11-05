@@ -40,7 +40,7 @@ class RawLogWriter(dir: File, baseName: String, private val flushEveryMs: Long =
 
     @Synchronized
     fun mark(tsMs: Long, text: String) {
-        marksFile.appendText("(${tsMs / 1000}.${(tsMs % 1000).toString().padStart(3, '0')}000) MARK $text\n")
+        marksFile.appendText(markLine(tsMs, text) + "\n")
     }
 
     @Synchronized
@@ -59,5 +59,10 @@ class RawLogWriter(dir: File, baseName: String, private val flushEveryMs: Long =
     /** finish() alone keeps the native Deflater until GC; at one member per 5 s that adds up over a long charge. */
     private class MemberStream(out: FileOutputStream) : GZIPOutputStream(out) {
         fun release() = def.end()
+    }
+
+    companion object {
+        /** `(seconds.micros) MARK <text>`, the format of can_live.py's .marks files. */
+        fun markLine(tsMs: Long, text: String) = "(${tsMs / 1000}.${(tsMs % 1000).toString().padStart(3, '0')}000) MARK $text"
     }
 }

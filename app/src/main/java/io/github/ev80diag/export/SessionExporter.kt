@@ -41,7 +41,7 @@ object SessionExporter {
                     timestampResolutionMs = when (s.adapterKind) { "GS_USB" -> 10; "REPLAY" -> 1; else -> 200 },
                     type = s.type, outcome = s.outcome, startMs = s.startMs, endMs = s.endMs, chargerName = s.chargerName,
                     chargedKwh = s.chargedKwh, framesTotal = s.framesTotal, droppedFrames = s.droppedFrames, profileName = profile)
-                BundleWriter.write(File(dir, "$base.ev80"), meta, raw, s.marksPath?.let(::File), samplesCsv(samples))
+                BundleWriter.write(File(dir, "$base.ev80"), meta, raw, s.marksPath?.let(::File), samplesCsv(samples), db.marks().forSession(s.id))
             }
             ExportFormat.CSV -> File(dir, "$base.csv").also { f -> f.bufferedWriter().use { w -> samplesCsv(samples).forEach { w.appendLine(it) } } }
             ExportFormat.CANDUMP -> raw?.copyTo(File(dir, "$base.log.gz"), overwrite = true)
@@ -73,7 +73,8 @@ object SessionExporter {
             }
             val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
             val name = "ev80_${profile.name.replace(Regex("[^A-Za-z0-9_-]"), "_")}_all_$stamp.zip"
-            ProfileExport.write(File(File(ctx.cacheDir, "share"), name), json, ProfileExport.sessionsCsv(sessions), bundles, cells)
+            ProfileExport.write(File(File(ctx.cacheDir, "share"), name), json, ProfileExport.sessionsCsv(sessions),
+                ProfileExport.marksCsv(db.marks().listForProfile(profile.id)), bundles, cells)
         } finally {
             tmp.deleteRecursively()
         }

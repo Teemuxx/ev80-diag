@@ -1,5 +1,7 @@
 package io.github.ev80diag.export
 
+import io.github.ev80diag.data.store.MarkEntity
+import io.github.ev80diag.recording.RawLogWriter
 import java.io.File
 import java.util.zip.Deflater
 import java.util.zip.GZIPOutputStream
@@ -26,9 +28,11 @@ data class SessionMeta(
 /**
  * The `.ev80` share bundle: a zip with session.json, can.log.gz (the raw candump text, stored as is
  * because it is already gzip), session.marks and samples.csv.gz. Entries without data are left out.
+ * session.marks is the marks file written next to the raw log, or, without one, made from the database [markRows].
  */
 object BundleWriter {
-    fun write(out: File, meta: SessionMeta, rawLog: File?, marks: File?, samplesCsv: Sequence<String>): File {
+    fun write(out: File, meta: SessionMeta, rawLog: File?, marks: File?, samplesCsv: Sequence<String>,
+              markRows: List<MarkEntity> = emptyList()): File {
         ZipOutputStream(out.outputStream().buffered()).use { zip ->
             zip.putNextEntry(ZipEntry("session.json")); zip.write(json(meta).toByteArray(Charsets.UTF_8)); zip.closeEntry()
             if (rawLog != null && rawLog.exists()) {
@@ -38,6 +42,10 @@ object BundleWriter {
             }
             if (marks != null && marks.exists() && marks.length() > 0) {
                 zip.putNextEntry(ZipEntry("session.marks")); marks.inputStream().use { it.copyTo(zip) }; zip.closeEntry()
+            } else if (markRows.isNotEmpty()) {
+                zip.putNextEntry(ZipEntry("session.marks"))
+                marksLines(markRows).forEach { zip.write((it + "\n").toByteArray(Charsets.UTF_8)) }
+                zip.closeEntry()
             }
             zip.putNextEntry(ZipEntry("samples.csv.gz"))
             GZIPOutputStream(zip).let { gz ->
@@ -48,6 +56,8 @@ object BundleWriter {
         }
         return out
     }
+
+    fun marksLines(marks: List<MarkEntity>): List<String> = marks.map { RawLogWriter.markLine(it.tsMs, it.text) }
 
     fun json(m: SessionMeta): String = buildString {
         append("{\n")

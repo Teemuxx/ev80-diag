@@ -2,6 +2,7 @@ package io.github.ev80diag.export
 
 import io.github.ev80diag.data.store.CellBlob
 import io.github.ev80diag.data.store.CellSnapshotEntity
+import io.github.ev80diag.data.store.MarkEntity
 import io.github.ev80diag.data.store.SessionEntity
 import java.io.File
 import java.util.zip.Deflater
@@ -10,7 +11,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 /**
- * Everything recorded for one van profile as one zip: profile.json, sessions.csv (one row per session),
+ * Everything recorded for one van profile as one zip: profile.json, sessions.csv (one row per session), marks.csv,
  * sessions/<id>_<name>.ev80 (each session's normal share bundle; the id keeps two sessions of the same minute apart) and cells.csv.gz (all cell snapshots).
  */
 object ProfileExport {
@@ -22,17 +23,24 @@ object ProfileExport {
             s.adapterKind, s.adapterName, s.framesTotal, s.droppedFrames).joinToString(",") { csv(it) }
     }
 
+    fun marksCsv(marks: List<MarkEntity>): Sequence<String> =
+        sequenceOf("ts_ms,session_id,text") + marks.asSequence().map { m -> listOf(m.tsMs, m.sessionId, m.text).joinToString(",") { csv(it) } }
+
     /** Header first, then one row per snapshot; feed it page by page for long histories. */
     fun cellsCsv(snapshots: List<CellSnapshotEntity>, header: Boolean = true): Sequence<String> =
         (if (header) sequenceOf(CELLS_HEADER) else emptySequence()) + snapshots.asSequence().map { c ->
             "${c.tsMs},${if (c.charging) 1 else 0}," + CellBlob.unpack(c.mv).joinToString(",")
         }
 
-    fun write(out: File, profileJson: String, sessionsCsv: Sequence<String>, bundles: List<Pair<Long, File>>, cellsCsv: Sequence<String>): File {
+    fun write(out: File, profileJson: String, sessionsCsv: Sequence<String>, marksCsv: Sequence<String>,
+              bundles: List<Pair<Long, File>>, cellsCsv: Sequence<String>): File {
         ZipOutputStream(out.outputStream().buffered()).use { zip ->
             zip.putNextEntry(ZipEntry("profile.json")); zip.write(profileJson.toByteArray(Charsets.UTF_8)); zip.closeEntry()
             zip.putNextEntry(ZipEntry("sessions.csv"))
             sessionsCsv.forEach { zip.write(it.toByteArray(Charsets.UTF_8)); zip.write('\n'.code) }
+            zip.closeEntry()
+            zip.putNextEntry(ZipEntry("marks.csv"))
+            marksCsv.forEach { zip.write(it.toByteArray(Charsets.UTF_8)); zip.write('\n'.code) }
             zip.closeEntry()
             zip.setLevel(Deflater.NO_COMPRESSION)   // bundles are zips already
             for ((id, b) in bundles) { zip.putNextEntry(ZipEntry("sessions/${id}_${b.name}")); b.inputStream().use { it.copyTo(zip) }; zip.closeEntry() }

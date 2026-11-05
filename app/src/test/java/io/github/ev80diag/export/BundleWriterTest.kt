@@ -76,4 +76,17 @@ class BundleWriterTest {
         val j = JSONObject(text(BundleWriter.write(File(tmp(), "x.ev80"), meta.copy(endMs = null, outcome = null, chargerName = null, chargedKwh = null), null, null, emptySequence()), "session.json"))
         assertTrue(j.isNull("endMs")); assertTrue(j.isNull("outcome")); assertTrue(j.isNull("chargerName")); assertTrue(j.isNull("chargedKwh"))
     }
+
+    @Test fun marksLines_format() {
+        val m = io.github.ev80diag.data.store.MarkEntity(1, 1, 3, 1_793_273_400_123, "range dropped")
+        assertEquals(listOf("(1793273400.123000) MARK range dropped"), BundleWriter.marksLines(listOf(m)))
+    }
+
+    /** A drive without a raw log has no marks file: its marks come from the database. */
+    @Test fun bundle_marksFromDatabase_whenNoFile() {
+        val dir = tmp()
+        val m = io.github.ev80diag.data.store.MarkEntity(1, 1, 3, 1_793_273_400_000, "limp mode")
+        val out = BundleWriter.write(File(dir, "x.ev80"), meta, null, null, emptySequence(), listOf(m))
+        assertEquals("(1793273400.000000) MARK limp mode\n", text(out, "session.marks"))
+    }
 }
