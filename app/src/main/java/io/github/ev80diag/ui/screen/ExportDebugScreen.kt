@@ -108,8 +108,10 @@ fun ExportDebugScreen(modifier: Modifier = Modifier, vm: ExportDebugViewModel = 
         Heading(R.string.debug_log)
         Text(logLines.takeLast(30).joinToString("\n"), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedButton({
-            val dir = File(ctx.filesDir, "logs")
-            SessionExporter.shareDebugLogs(ctx, listOf(File(dir, "debug.log"), File(dir, "debug.log.1")), R.string.btn_send_debug)
+            scope.launch {
+                runCatching { SessionExporter.buildDebugReport(ctx) }.onFailure { DebugLog.log("debug report failed: $it") }
+                    .getOrNull()?.let { SessionExporter.share(ctx, it, R.string.btn_send_debug) }
+            }
         }, Modifier.fillMaxWidth()) { Text(stringResource(R.string.btn_send_debug)) }
     }
 }

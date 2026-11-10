@@ -30,6 +30,7 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -106,13 +107,22 @@ class Pipeline(
         data class Mark(val tsMs: Long, val text: String) : Ctl
     }
 
-    private val ctl = Channel<Ctl>(Channel.UNLIMITED)
+    /**
+     * Not a Channel: the decoder would have to select on it for every frame, and each frame then leaves a cancelled
+     * waiter behind that the next (rare) send has to walk past. After an hour connected that took seconds on the main
+     * thread (ANR, 2026-11-08). The decoder drains this queue with every frame and every tick; [wake] ends its wait.
+     */
+    private val ctl = ConcurrentLinkedQueue<Ctl>()
+    /** The tick channel of the running pipeline; it is sent to every second anyway, so it never piles up waiters. */
+    @Volatile private var wake: SendChannel<Long>? = null
+
+    private fun post(c: Ctl) { ctl.add(c); wake?.trySend(clock()) }
 
     /** Saves a timestamped note (database, and the open session's marks file when there is a raw log). */
-    fun mark(text: String) { ctl.trySend(Ctl.Mark(clock(), text.replace(Regex("\\s*[\\r\\n]+\\s*"), " ").trim())) }
+    fun mark(text: String) = post(Ctl.Mark(clock(), text.replace(Regex("\\s*[\\r\\n]+\\s*"), " ").trim()))
 
     /** The owner's answer to [ProfileEvent.Ask], an Undo of [ProfileEvent.Switched], or a tap on another van. */
-    fun chooseProfile(id: Long) { ctl.trySend(Ctl.Choose(id)) }
+    fun chooseProfile(id: Long) = post(Ctl.Choose(id))
 
     /**
      * Runs until [nextSource] returns null. It is called first with [SourceResult.NONE], then after each source
@@ -124,6 +134,7 @@ class Pipeline(
         val rawSub = bus.subscribe("raw", cap)
         val decSub = bus.subscribe("decode", cap)
         val ticks = Channel<Long>(Channel.CONFLATED)
+        wake = ticks
         // The consumers live in their own scope: cancelling run() (the user taps Disconnect) must not cancel them
         // before they have ended the open session and closed the raw log.
         val consumers = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -167,6 +178,7 @@ class Pipeline(
                 cmds.close()
                 rawJob.join()
                 tickJob.cancel(); evJob.cancel(); consumers.cancel()
+                wake = null
                 if (link != LinkStatus.REFUSED) link = LinkStatus.DISCONNECTED
                 publishFinal()
             }
@@ -409,7 +421,7 @@ class Pipeline(
                     val f = r.getOrNull()
                     if (f == null) { open = false; return@onReceiveCatching }
                     // select prefers the first ready clause, and frames are nearly always ready: take owner input here too
-                    while (true) onCtl(ctl.tryReceive().getOrNull() ?: break)
+                    while (true) onCtl(ctl.poll() ?: break)
                     if (f.id < 0) { if (f === RUN_START) newRun = true else live = false; return@onReceiveCatching }
                     if (newRun || armTs == null || (openId == null && f.timestamp - lastTs > REARM_GAP_MS)) arm(f.timestamp)
                     newRun = false; live = true
@@ -449,8 +461,10 @@ class Pipeline(
                     }
                     publish(f.timestamp)
                 }
-                ticks.onReceive { now -> if (lastTs != 0L && !replayMode) onTick(now) }
-                ctl.onReceive { onCtl(it) }
+                ticks.onReceive { now ->
+                    while (true) onCtl(ctl.poll() ?: break)
+                    if (lastTs != 0L && !replayMode) onTick(now)
+                }
             }
         }
         apply(detector.finish(lastTs))

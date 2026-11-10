@@ -80,7 +80,10 @@ object SessionExporter {
         }
     }
 
-    fun mimeOf(f: File) = when { f.name.endsWith(".csv") -> "text/csv"; f.name.endsWith(".gz") -> "application/gzip"; else -> "application/zip" }
+    fun mimeOf(f: File) = when {
+        f.name.endsWith(".csv") -> "text/csv"; f.name.endsWith(".gz") -> "application/gzip"; f.name.endsWith(".txt") -> "text/plain"
+        else -> "application/zip"
+    }
 
     fun share(ctx: Context, file: File, titleRes: Int) {
         val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
@@ -89,12 +92,16 @@ object SessionExporter {
         ctx.startActivity(Intent.createChooser(send, ctx.getString(titleRes)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    /** Debug files (debug.log and its rotated copy) as one share. */
-    fun shareDebugLogs(ctx: Context, files: List<File>, titleRes: Int) {
-        val uris = ArrayList(files.filter { it.exists() }.map { FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", it) })
-        if (uris.isEmpty()) return
-        val send = Intent(Intent.ACTION_SEND_MULTIPLE).setType("text/plain").putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        ctx.startActivity(Intent.createChooser(send, ctx.getString(titleRes)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    /** The debug log (both files) plus app and phone details as one text file, to share like a session. */
+    suspend fun buildDebugReport(ctx: Context): File = withContext(Dispatchers.IO) {
+        val now = Date()
+        val version = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
+        val header = listOf(
+            "EV80-diag $version (${ctx.packageName})",
+            "Android ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT}), ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+            "Created ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.US).format(now)}",
+        )
+        val name = "ev80_debug_${SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(now)}.txt"
+        DebugReport.write(File(File(ctx.cacheDir, "share"), name), File(ctx.filesDir, "logs"), header)
     }
 }

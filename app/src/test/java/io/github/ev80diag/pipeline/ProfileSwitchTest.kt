@@ -153,6 +153,29 @@ class ProfileSwitchTest {
         assertNull(m.sessionId); assertFalse(m.text.isEmpty())
     }
 
+    /**
+     * Phone, 2026-11-08 13:37: "mark a moment" after an hour connected froze the app (ANR in Pipeline.mark). The decode
+     * select had left a cancelled waiter on the owner-input channel for every frame, and the first send walked past all of them.
+     */
+    @Test fun mark_afterManyFrames_isInstant() {
+        val repo = FakeRepo()
+        val p = Pipeline(Files.createTempDirectory("sess").toFile(), { FullCanLogging.CHARGING_ONLY }, repo, 1, SocFeed.None)
+        var markNs = 0L
+        val src = object : io.github.ev80diag.transport.CanSource {
+            override val info = io.github.ev80diag.transport.SourceInfo(io.github.ev80diag.transport.SourceKind.STN_BT, "test", true, 1)
+            override suspend fun run(sink: io.github.ev80diag.transport.FrameSink) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                var ts = 1_000_000L
+                // one frame at a time, so the decoder waits for the next one each time (as with a live adapter)
+                repeat(400_000) { sink.onFrame(io.github.ev80diag.can.CanFrame(0x7F0, ByteArray(8), ts++)); kotlinx.coroutines.yield() }
+                val t0 = System.nanoTime(); p.mark("after an hour"); markNs = System.nanoTime() - t0
+                repeat(100) { sink.onFrame(io.github.ev80diag.can.CanFrame(0x7F0, ByteArray(8), ts++)); kotlinx.coroutines.yield() }
+            }
+        }
+        runBlocking { var given = false; p.run { if (given) null else { given = true; src } } }
+        assertEquals("after an hour", repo.marks.single().text)
+        assertTrue("mark took ${markNs / 1_000_000.0} ms", markNs < 3_000_000)
+    }
+
     /** Review C1: a replay never moves data, whatever the owner taps. */
     @Test fun choose_whileReplaying_movesNothing() {
         val repo = FakeRepo().apply { vans = listOf(et, lytee) }
